@@ -6,7 +6,7 @@ import { Search, FileClock, Calendar, History, Box, Briefcase, MapPin } from 'lu
 const PartUsageLogs = () => {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading } = useQuery<any[]>({
     queryKey: ['part-usage-logs'],
     queryFn: async () => {
       const { data, error } = await supabase

@@ -6,7 +6,7 @@ import { Search, Plus, FileText, ShoppingCart, Calendar, Factory, DollarSign, Ex
 const PurchaseOrders = () => {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const { data: purchaseOrders, isLoading } = useQuery({
+  const { data: purchaseOrders, isLoading } = useQuery<any[]>({
     queryKey: ['purchase-orders'],
     queryFn: () => purchaseOrdersApi.getPurchaseOrders()
   })

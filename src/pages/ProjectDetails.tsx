@@ -17,7 +17,8 @@ import {
   Layers,
   MoreVertical,
   PlusCircle,
-  FileDown
+  FileDown,
+  Trash2
 } from 'lucide-react'
 
 const ProjectDetails = () => {
@@ -26,7 +27,7 @@ const ProjectDetails = () => {
   const queryClient = useQueryClient()
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false)
   
-  const { data: project, isLoading } = useQuery({
+  const { data: project, isLoading } = useQuery<any>({
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.getProject(projectId)
   })

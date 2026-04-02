@@ -11,7 +11,7 @@ const Projects = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null)
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: () => projectsApi.getProjects()
   })
