@@ -17,17 +17,48 @@ import {
   MoreVertical,
   PlusCircle,
   FileDown,
-  Trash2
+  Trash2,
+  ShoppingCart
 } from 'lucide-react'
 
 import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
+import ProjectAddPartModal from '@/components/projects/ProjectAddPartModal'
+import CreatePOFromBOMModal from '@/components/projects/CreatePOFromBOMModal'
+
+const resolvePartType = (p: any) => {
+  if (p.mechanical_manufacture_id) return { type: 'MECH-MFG', id: p.mechanical_manufacture_id, ref: p.mechanical_manufacture };
+  if (p.mechanical_bought_out_part_id) return { type: 'MECH-BOP', id: p.mechanical_bought_out_part_id, ref: p.mechanical_bought_out };
+  if (p.electrical_manufacture_id) return { type: 'ELEC-MFG', id: p.electrical_manufacture_id, ref: p.electrical_manufacture };
+  if (p.electrical_bought_out_part_id) return { type: 'ELEC-BOP', id: p.electrical_bought_out_part_id, ref: p.electrical_bought_out };
+  if (p.pneumatic_bought_out_part_id) return { type: 'PNEU-BOP', id: p.pneumatic_bought_out_part_id, ref: p.pneumatic_bought_out };
+  return { type: 'UNKNOWN', id: p.id, ref: null };
+}
 
 const ProjectDetails = () => {
   const { id } = useParams()
   const projectId = parseInt(id!)
   const queryClient = useQueryClient()
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false)
+  const [isAddPartModalOpen, setIsAddPartModalOpen] = useState(false)
   const [sectionToEdit, setSectionToEdit] = useState<any>(null)
+  const [activeSectionId, setActiveSectionId] = useState<number>(0)
+  const [activeSectionName, setActiveSectionName] = useState<string>('')
+  const [selectedPartIds, setSelectedPartIds] = useState<Set<number>>(new Set())
+  const [isGeneratePOModalOpen, setIsGeneratePOModalOpen] = useState(false)
+  
+  const togglePartSelection = (partId: number) => {
+    const newSelection = new Set(selectedPartIds)
+    if (newSelection.has(partId)) {
+      newSelection.delete(partId)
+    } else {
+      newSelection.add(partId)
+    }
+    setSelectedPartIds(newSelection)
+  }
+
+  const handleGeneratePO = () => {
+    setIsGeneratePOModalOpen(true)
+  }
   
   const { data: project, isLoading } = useQuery<any>({
     queryKey: ['project', projectId],
@@ -42,6 +73,12 @@ const ProjectDetails = () => {
   const openEditSection = (section: any) => {
     setSectionToEdit(section)
     setIsAddSectionModalOpen(true)
+  }
+
+  const openAddPart = (sectionId: number, sectionName: string) => {
+    setActiveSectionId(sectionId)
+    setActiveSectionName(sectionName)
+    setIsAddPartModalOpen(true)
   }
 
   const handleDeleteSection = async (sectionId: number) => {
@@ -174,7 +211,6 @@ const ProjectDetails = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-primary-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-10 transform group-hover:scale-110 transition-transform">
               <Layers className="h-32 w-32" />
@@ -195,6 +231,35 @@ const ProjectDetails = () => {
               </div>
             </div>
           </div>
+
+          {selectedPartIds.size > 0 && (
+            <div className="bg-white rounded-2xl p-6 border-2 border-primary-100 shadow-xl border-t-4 border-t-primary-600 animate-in slide-in-from-bottom-4 duration-300">
+               <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="bg-primary-100 p-2 rounded-lg">
+                      <PlusCircle className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">{selectedPartIds.size} Parts Selected</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Ready for procurement</p>
+                    </div>
+                  </div>
+               </div>
+               <button 
+                onClick={handleGeneratePO}
+                className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-black rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all hover:scale-[1.02] active:scale-95"
+               >
+                 <ShoppingCart className="h-4 w-4 mr-2" />
+                 Generate Purchase Order
+               </button>
+               <button 
+                onClick={() => setSelectedPartIds(new Set())}
+                className="w-full mt-3 text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest"
+               >
+                 Clear Selection
+               </button>
+            </div>
+          )}
         </div>
 
         {/* Right Column: BOM Sections */}
@@ -244,8 +309,14 @@ const ProjectDetails = () => {
                     </div>
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
+                        onClick={() => openAddPart(section.id, section.section_name)}
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                      >
+                       <Plus className="h-3.5 w-3.5 mr-1" /> Add Part
+                      </button>
+                      <button 
                         onClick={() => openEditSection(section)}
-                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors overflow-hidden relative group/btn"
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors overflow-hidden relative group/btn"
                       >
                         <Settings className="h-3.5 w-3.5 mr-1" /> Edit
                       </button>
@@ -263,33 +334,89 @@ const ProjectDetails = () => {
                       <table className="min-w-full divide-y divide-gray-100">
                         <thead className="bg-white">
                           <tr>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID</th>
+                            <th className="px-4 py-3 text-left">
+                              <input 
+                                type="checkbox"
+                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                checked={section.parts?.every((p: any) => selectedPartIds.has(p.id))}
+                                onChange={(e) => {
+                                  const newSelection = new Set(selectedPartIds);
+                                  if (e.target.checked) {
+                                    section.parts?.forEach((p: any) => newSelection.add(p.id));
+                                  } else {
+                                    section.parts?.forEach((p: any) => newSelection.delete(p.id));
+                                  }
+                                  setSelectedPartIds(newSelection);
+                                }}
+                              />
+                            </th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Part Number</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
                             <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Price</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Type</th>
                             <th className="relative px-6 py-3">
                               <span className="sr-only">Actions</span>
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-50">
-                          {section.parts.map((p: any) => (
-                            <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                          {section.parts.map((p: any) => {
+                            const pData = resolvePartType(p);
+                            const isSelected = selectedPartIds.has(p.id);
+                            return (
+                            <tr key={p.id} className={`hover:bg-gray-50/50 transition-colors ${isSelected ? 'bg-primary-50/30' : ''}`}>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <input 
+                                  type="checkbox"
+                                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                  checked={isSelected}
+                                  onChange={() => togglePartSelection(p.id)}
+                                />
+                              </td>
                               <td className="px-6 py-3 whitespace-nowrap">
-                                <span className="text-xs font-mono font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded uppercase">{p.part_type.replace('_', '-')}-{p.part_id}</span>
+                                <span className={`text-sm font-bold ${isSelected ? 'text-primary-700' : 'text-gray-900'}`}>{pData.ref?.part_number || `ID: ${pData.id}`}</span>
+                                {p.reference_designator && (
+                                  <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-mono">{p.reference_designator}</span>
+                                )}
+                              </td>
+                              <td className="px-6 py-3 text-sm text-gray-500 max-w-sm truncate">
+                                {pData.ref?.description || '-'}
+                                {p.notes && <div className="text-xs text-gray-400 italic mt-0.5">{p.notes}</div>}
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-900 tabular-nums">
                                 {p.quantity} {p.unit || 'pcs'}
                               </td>
-                              <td className="px-6 py-3 text-xs text-gray-500 truncate italic max-w-xs">
-                                {p.notes || '-'}
+                              <td className="px-6 py-3 whitespace-nowrap text-xs font-medium text-gray-500 tabular-nums">
+                                {p.currency || '$'}{p.unit_price}
+                              </td>
+                              <td className="px-6 py-3 whitespace-nowrap">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                                  pData.type.includes('MFG') ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+                                }`}>
+                                  {pData.type}
+                                </span>
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button className="text-red-400 hover:text-red-600 transition-colors">
+                                <button 
+                                  onClick={async () => {
+                                    if (confirm('Are you sure you want to remove this part from the BOM?')) {
+                                      try {
+                                        await projectsApi.removePartFromSection(p.id);
+                                        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                                      } catch (error) {
+                                        console.error('Error removing part:', error);
+                                        alert('Failed to remove part');
+                                      }
+                                    }
+                                  }}
+                                  className="text-red-400 hover:text-red-600 transition-colors"
+                                >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          )})}
                         </tbody>
                       </table>
                     </div>
@@ -310,6 +437,24 @@ const ProjectDetails = () => {
         onClose={() => setIsAddSectionModalOpen(false)}
         projectId={projectId}
         sectionToEdit={sectionToEdit}
+      />
+
+      <ProjectAddPartModal
+        isOpen={isAddPartModalOpen}
+        onClose={() => setIsAddPartModalOpen(false)}
+        projectId={projectId}
+        sectionId={activeSectionId}
+        sectionName={activeSectionName}
+      />
+
+      <CreatePOFromBOMModal
+        isOpen={isGeneratePOModalOpen}
+        onClose={() => {
+          setIsGeneratePOModalOpen(false)
+          setSelectedPartIds(new Set())
+        }}
+        project={project}
+        selectedPartIds={Array.from(selectedPartIds)}
       />
     </div>
   )

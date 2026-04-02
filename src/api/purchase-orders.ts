@@ -46,6 +46,34 @@ export const purchaseOrdersApi = {
     if (error) throw error
     return data
   },
+
+  createPurchaseOrderWithItems: async (po: PurchaseOrderInsert, items: any[]) => {
+    // 1. Create the PO
+    const { data: newPO, error: poError } = await (supabase.from('purchase_orders') as any)
+      .insert([po])
+      .select()
+      .single();
+
+    if (poError) throw poError;
+
+    // 2. Create the Items
+    const itemsWithPOId = items.map(item => ({
+      ...item,
+      purchase_order_id: newPO.id
+    }));
+
+    const { error: itemsError } = await (supabase.from('purchase_order_items') as any)
+      .insert(itemsWithPOId);
+
+    if (itemsError) {
+      // Rollback PO if items fail (Supabase doesn't have multi-table transactions in JS easily, 
+      // but we should at least try to delete the PO or notify the user)
+      await supabase.from('purchase_orders').delete().eq('id', newPO.id);
+      throw itemsError;
+    }
+
+    return newPO;
+  },
   
   updatePurchaseOrder: async (id: number, po: PurchaseOrderUpdate) => {
     const { data, error } = await (supabase.from('purchase_orders') as any)

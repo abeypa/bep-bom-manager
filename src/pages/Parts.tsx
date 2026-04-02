@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { partsApi, PartCategory } from '@/api/parts'
 import { Search, Plus, FileDown, MoreHorizontal, FileText, Image as ImageIcon, Trash2, Edit, Package, Upload } from 'lucide-react'
 import PartFormModal from '@/components/parts/PartFormModal'
@@ -14,6 +14,7 @@ const TABS: { id: PartCategory; name: string }[] = [
 ]
 
 const Parts = () => {
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<PartCategory>('mechanical_manufacture')
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -232,7 +233,20 @@ const Parts = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded">
+                        <button 
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this part? This action cannot be undone.')) {
+                              try {
+                                await partsApi.deletePart(activeTab, part.id)
+                                queryClient.invalidateQueries({ queryKey: ['parts', activeTab] })
+                              } catch (error) {
+                                console.error('Error deleting part:', error)
+                                alert('Failed to delete part')
+                              }
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>

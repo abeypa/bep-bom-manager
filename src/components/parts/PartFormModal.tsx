@@ -168,11 +168,83 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700">ERP Part No.</label>
+              <input
+                type="text"
+                name="beperp_part_no"
+                value={formData.beperp_part_no || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+
+            {isManufacture && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Material</label>
+                  <input
+                    type="text"
+                    name="material"
+                    value={formData.material || ''}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Finish</label>
+                  <input
+                    type="text"
+                    name="finish"
+                    value={formData.finish || ''}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  />
+                </div>
+              </>
+            )}
+
+            {activeTab === 'pneumatic_bought_out' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Port Size</label>
+                  <input
+                    type="text"
+                    name="port_size"
+                    value={formData.port_size || ''}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Op. Pressure</label>
+                  <input
+                    type="text"
+                    name="operating_pressure"
+                    value={formData.operating_pressure || ''}
+                    onChange={handleChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  />
+                </div>
+              </>
+            )}
+
+            <div>
               <label className="block text-sm font-medium text-gray-700">Stock Quantity</label>
               <input
                 type="number"
                 name="stock_quantity"
                 value={formData.stock_quantity || 0}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Min. Stock Level</label>
+              <input
+                type="number"
+                name="min_stock_level"
+                value={formData.min_stock_level || 0}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
@@ -195,6 +267,32 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Currency</label>
+              <select
+                name="currency"
+                value={formData.currency || 'INR'}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              >
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Specifications</label>
+              <textarea
+                name="specifications"
+                rows={2}
+                value={formData.specifications || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+            
             {isManufacture && (
               <div className="md:col-span-2 border border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <FileUp className="mx-auto h-12 w-12 text-gray-400" />
