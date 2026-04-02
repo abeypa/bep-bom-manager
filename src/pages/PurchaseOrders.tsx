@@ -5,20 +5,30 @@ import { Search, Plus, FileText, ShoppingCart, Calendar, Factory, DollarSign, Ex
 
 const PurchaseOrders = () => {
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProject, setSelectedProject] = useState('')
+  const [selectedSupplier, setSelectedSupplier] = useState('')
 
   const { data: purchaseOrders, isLoading } = useQuery<any[]>({
     queryKey: ['purchase-orders'],
     queryFn: () => purchaseOrdersApi.getPurchaseOrders()
   })
 
+  // Derive unique lists for dropdowns
+  const uniqueProjects = Array.from(new Set((purchaseOrders || []).map(po => po.projects?.project_name).filter(Boolean))).sort()
+  const uniqueSuppliers = Array.from(new Set((purchaseOrders || []).map(po => po.suppliers?.name).filter(Boolean))).sort()
+
   const filteredPOs = (purchaseOrders || []).filter(po => {
     const s = searchTerm.toLowerCase()
-    return (
+    const matchesSearch = 
       (po.po_number?.toLowerCase() || '').includes(s) ||
       (po.suppliers?.name?.toLowerCase() || '').includes(s) ||
       (po.projects?.project_name?.toLowerCase() || '').includes(s) ||
       (po.projects?.project_number?.toLowerCase() || '').includes(s)
-    )
+
+    const matchesProject = selectedProject === '' || po.projects?.project_name === selectedProject
+    const matchesSupplier = selectedSupplier === '' || po.suppliers?.name === selectedSupplier
+
+    return matchesSearch && matchesProject && matchesSupplier
   })
 
   const getStatusColor = (status: string) => {
@@ -57,8 +67,8 @@ const PurchaseOrders = () => {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-4">
-        <div className="flex-1 relative">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-[2] relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
@@ -69,6 +79,30 @@ const PurchaseOrders = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex-1">
+          <select
+            className="focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-200 rounded-xl py-3 px-4 border outline-none bg-white shadow-sm transition-all"
+            value={selectedProject}
+            onChange={(e) => setSelectedProject(e.target.value)}
+          >
+            <option value="">All Projects</option>
+            {uniqueProjects.map(p => (
+              <option key={String(p)} value={String(p)}>{p}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <select
+            className="focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block w-full text-sm border-gray-200 rounded-xl py-3 px-4 border outline-none bg-white shadow-sm transition-all"
+            value={selectedSupplier}
+            onChange={(e) => setSelectedSupplier(e.target.value)}
+          >
+            <option value="">All Suppliers</option>
+            {uniqueSuppliers.map(s => (
+              <option key={String(s)} value={String(s)}>{s}</option>
+            ))}
+          </select>
         </div>
       </div>
 

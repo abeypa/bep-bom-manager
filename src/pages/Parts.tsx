@@ -36,11 +36,21 @@ const Parts = () => {
     queryFn: () => partsApi.getParts(activeTab)
   })
 
-  const filteredParts = (parts || []).filter((p: any) => 
-    p.part_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.manufacturer_part_number?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Extract unique suppliers from the currently loaded parts
+  const uniqueSuppliers = Array.from(new Set((parts || []).map((p: any) => p.suppliers?.name).filter(Boolean))).sort()
+
+  const [selectedSupplier, setSelectedSupplier] = useState('')
+
+  const filteredParts = (parts || []).filter((p: any) => {
+    const matchesSearch = 
+      p.part_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.manufacturer_part_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesSupplier = selectedSupplier === '' || p.suppliers?.name === selectedSupplier
+
+    return matchesSearch && matchesSupplier
+  })
 
   const isManufacture = activeTab.includes('manufacture')
 
@@ -96,8 +106,8 @@ const Parts = () => {
       </div>
 
       {/* Search and Filters */}
-      <div className="mb-6 flex gap-4">
-        <div className="flex-1 relative rounded-md shadow-sm">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-[2] relative rounded-md shadow-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
@@ -108,6 +118,18 @@ const Parts = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex-1">
+          <select
+            className="focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border outline-none"
+            value={selectedSupplier}
+            onChange={(e) => setSelectedSupplier(e.target.value)}
+          >
+            <option value="">All Suppliers</option>
+            {uniqueSuppliers.map(s => (
+              <option key={String(s)} value={String(s)}>{s as string}</option>
+            ))}
+          </select>
         </div>
       </div>
 

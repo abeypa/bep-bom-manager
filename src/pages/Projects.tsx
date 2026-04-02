@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom'
 const Projects = () => {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null)
 
@@ -23,11 +24,16 @@ const Projects = () => {
     }
   })
 
-  const filteredProjects = (projects || []).filter(p => 
-    p.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.project_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.customer?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredProjects = (projects || []).filter(p => {
+    const matchesSearch = 
+      p.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.project_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.customer?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesStatus = selectedStatus === '' || p.status === selectedStatus
+
+    return matchesSearch && matchesStatus
+  })
 
   const handleAddProject = () => {
     setProjectToEdit(null)
@@ -78,8 +84,8 @@ const Projects = () => {
         </div>
       </div>
 
-      <div className="mb-6 flex gap-4">
-        <div className="flex-1 relative rounded-md shadow-sm">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-[2] relative rounded-md shadow-sm">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
@@ -90,6 +96,23 @@ const Projects = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+        </div>
+        <div className="flex-1">
+          <select
+            className="focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md py-2 px-3 border outline-none"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            <option value="planning">Planning</option>
+            <option value="design">Design</option>
+            <option value="procurement">Procurement</option>
+            <option value="build">Build</option>
+            <option value="testing">Testing</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
         </div>
       </div>
 

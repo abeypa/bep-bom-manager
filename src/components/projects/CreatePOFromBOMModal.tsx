@@ -83,7 +83,7 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
   const totalAmount = useMemo(() => {
     return selectedParts.reduce((acc, p) => {
       const discount = p.catalogItem?.discount_percent || 0
-      const price = p.unit_price || 0
+      const price = p.catalogItem?.base_price || 0
       return acc + (p.quantity * price * (1 - (discount / 100)))
     }, 0)
   }, [selectedParts])
@@ -118,7 +118,7 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
 
       const items = selectedParts.map(p => {
         const discount = p.catalogItem?.discount_percent || 0
-        const price = p.unit_price || 0
+        const price = p.catalogItem?.base_price || 0
         return {
           purchase_order_id: 0, // Placeholder, handled by API transaction
           part_type: p.tableName,
@@ -238,7 +238,7 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
                        <div className="text-right">
                           <p className="text-xs font-black text-gray-900 tabular-nums">x{p.quantity}</p>
                           <p className="text-[10px] text-gray-500 tabular-nums">
-                            {currency} {(p.quantity * (p.unit_price || 0) * (1 - ((p.catalogItem?.discount_percent || 0) / 100))).toFixed(2)}
+                            {currency} {(p.quantity * (p.catalogItem?.base_price || 0) * (1 - ((p.catalogItem?.discount_percent || 0) / 100))).toFixed(2)}
                             {p.catalogItem?.discount_percent > 0 && <span className="ml-1 text-green-600">(-{p.catalogItem.discount_percent}%)</span>}
                           </p>
                        </div>
