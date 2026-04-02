@@ -1,14 +1,19 @@
 import { Package, FolderKanban, Users, FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { dashboardApi } from '@/api/dashboard'
 
 const Dashboard = () => {
-  // Mock data - in real app this would come from Supabase
+  const { data: dbStats, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardApi.getStats,
+  })
+
   const stats = [
-    { name: 'Total Parts', value: '1,234', icon: Package, color: 'bg-blue-500' },
-    { name: 'Active Projects', value: '8', icon: FolderKanban, color: 'bg-green-500' },
-    { name: 'Suppliers', value: '24', icon: Users, color: 'bg-purple-500' },
-    { name: 'Pending POs', value: '12', icon: FileText, color: 'bg-yellow-500' },
-    { name: 'Low Stock Alerts', value: '5', icon: AlertTriangle, color: 'bg-red-500' },
-    { name: 'Completed Projects', value: '3', icon: CheckCircle, color: 'bg-indigo-500' },
+    { name: 'Total Parts', value: dbStats?.total_parts ?? '-', icon: Package, color: 'bg-blue-500' },
+    { name: 'Active Projects', value: dbStats?.active_projects ?? '-', icon: FolderKanban, color: 'bg-green-500' },
+    { name: 'Completed Projects', value: dbStats?.completed_projects ?? '-', icon: CheckCircle, color: 'bg-indigo-500' },
+    { name: 'Low Stock Alerts', value: dbStats?.low_stock_alerts ?? '-', icon: AlertTriangle, color: 'bg-red-500' },
+    { name: 'On Hold Projects', value: dbStats?.on_hold_projects ?? '-', icon: FileText, color: 'bg-yellow-500' },
   ]
 
   const recentProjects = [
@@ -17,6 +22,11 @@ const Dashboard = () => {
     { id: 3, name: 'CNC Router Upgrade', number: 'PRJ-2024-003', status: 'Build', progress: 85 },
     { id: 4, name: 'Robotic Arm Prototype', number: 'PRJ-2024-004', status: 'Completed', progress: 100 },
   ]
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64">Loading dashboard...</div>
+  }
+
 
   return (
     <div>
