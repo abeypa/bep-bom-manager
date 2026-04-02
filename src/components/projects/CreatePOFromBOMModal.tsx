@@ -60,30 +60,51 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
     return list
   }, [project.sections, selectedPartIds])
 
-  // Total calculation
-  const totalAmount = useMemo(() => {
-    return selectedParts.reduce((acc, p) => acc + (p.quantity * (p.unit_price || 0)), 0)
+  const { uniqueSuppliers, uniqueCurrencies } = useMemo(() => {
+    const suppliers = new Set<number>()
+    const currencies = new Set<string>()
+    selectedParts.forEach(p => {
+      if (p.catalogItem?.supplier_id) suppliers.add(p.catalogItem.supplier_id)
+      if (p.currency) currencies.add(p.currency)
+    })
+    return { 
+      uniqueSuppliers: Array.from(suppliers), 
+      uniqueCurrencies: Array.from(currencies) 
+    }
   }, [selectedParts])
 
-  // Recommended supplier/currency from selected parts (Legacy Logic: prefer consistency)
+  const validationError = useMemo(() => {
+    if (uniqueSuppliers.length > 1) return `Selected parts belong to ${uniqueSuppliers.length} different suppliers. Please select parts from only one supplier for a single PO.`
+    if (uniqueCurrencies.length > 1) return `Selected parts use different currencies. Please select parts with the same currency.`
+    return null
+  }, [uniqueSuppliers, uniqueCurrencies])
+
+  // Total calculation
+  const totalAmount = useMemo(() => {
+    return selectedParts.reduce((acc, p) => {
+      const discount = p.catalogItem?.discount_percent || 0
+      const price = p.unit_price || 0
+      return acc + (p.quantity * price * (1 - (discount / 100)))
+    }, 0)
+  }, [selectedParts])
+
+  // Recommended supplier/currency from selected parts
   useMemo(() => {
-    if (selectedParts.length > 0 && !supplierId) {
-      const firstSupplierId = selectedParts[0].catalogItem?.supplier_id
-      if (firstSupplierId) setSupplierId(firstSupplierId.toString())
-      
-      const firstCurrency = selectedParts[0].currency
-      if (firstCurrency) setCurrency(firstCurrency)
-    }
-  }, [selectedParts, supplierId])
+    if (uniqueSuppliers.length === 1 && !supplierId) setSupplierId(uniqueSuppliers[0].toString())
+    if (uniqueCurrencies.length === 1 && !currency) setCurrency(uniqueCurrencies[0])
+  }, [uniqueSuppliers, uniqueCurrencies, supplierId, currency])
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!supplierId) throw new Error('Please select a supplier')
 
+      // PO Number matching Devendra format: PO-yyyyMMddHHmmss
+      const nowStr = new Date().toISOString().replace(/\D/g, '').slice(0, 14)
+
       const poData = {
         project_id: project.id,
         supplier_id: parseInt(supplierId),
-        po_number: `PO-${Date.now().toString().slice(-6)}`, // Temporary PO number generation
+        po_number: `PO-${nowStr}`,
         po_date: new Date().toISOString(),
         currency: currency,
         grand_total: totalAmount,
@@ -91,20 +112,25 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
         total_quantity: selectedParts.reduce((acc, p) => acc + (p.quantity || 0), 0),
         status: 'Pending',
         notes: notes,
+        terms: 'Payment terms: Net 30. Delivery: As per schedule.',
         created_date: new Date().toISOString()
       }
 
-      const items = selectedParts.map(p => ({
-        purchase_order_id: 0, // Placeholder, handled by API transaction
-        part_type: p.tableName,
-        part_number: p.catalogItem?.part_number || '',
-        description: p.catalogItem?.description || '',
-        quantity: p.quantity,
-        unit_price: p.unit_price || 0,
-        discount_percent: 0,
-        total_amount: p.quantity * (p.unit_price || 0),
-        project_part_id: p.id
-      }))
+      const items = selectedParts.map(p => {
+        const discount = p.catalogItem?.discount_percent || 0
+        const price = p.unit_price || 0
+        return {
+          purchase_order_id: 0, // Placeholder, handled by API transaction
+          part_type: p.tableName,
+          part_number: p.catalogItem?.part_number || '',
+          description: p.catalogItem?.description || '',
+          quantity: p.quantity,
+          unit_price: price,
+          discount_percent: discount,
+          total_amount: p.quantity * price * (1 - (discount / 100)),
+          project_part_id: p.id
+        }
+      })
 
       return purchaseOrdersApi.createPurchaseOrderWithItems(poData as any, items)
     },
@@ -141,7 +167,13 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
           </div>
 
           <div className="p-8 space-y-8">
-            {/* Summary Cards */}
+            {validationError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div className="text-sm font-bold">{validationError}</div>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Items</p>
@@ -205,7 +237,10 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
                        </div>
                        <div className="text-right">
                           <p className="text-xs font-black text-gray-900 tabular-nums">x{p.quantity}</p>
-                          <p className="text-[10px] text-gray-500 tabular-nums">{currency} {(p.quantity * (p.unit_price || 0)).toFixed(2)}</p>
+                          <p className="text-[10px] text-gray-500 tabular-nums">
+                            {currency} {(p.quantity * (p.unit_price || 0) * (1 - ((p.catalogItem?.discount_percent || 0) / 100))).toFixed(2)}
+                            {p.catalogItem?.discount_percent > 0 && <span className="ml-1 text-green-600">(-{p.catalogItem.discount_percent}%)</span>}
+                          </p>
                        </div>
                     </div>
                   ))}
@@ -230,7 +265,7 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
                 Cancel
               </button>
               <button
-                disabled={mutation.isPending || !supplierId}
+                disabled={mutation.isPending || !supplierId || !!validationError}
                 onClick={() => mutation.mutate()}
                 className="flex-[2] inline-flex items-center justify-center px-4 py-4 border border-transparent shadow-lg shadow-primary-200 text-sm font-black rounded-2xl text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 transition-all active:scale-95 uppercase tracking-widest"
               >
