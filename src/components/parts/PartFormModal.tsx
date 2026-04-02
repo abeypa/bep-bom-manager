@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Save, FileUp } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { X, Save, FileUp, Factory } from 'lucide-react'
 import { partsApi, PartCategory } from '@/api/parts'
-import { supabase } from '@/lib/supabase'
+import { suppliersApi } from '@/api/suppliers'
 
 interface PartFormModalProps {
   isOpen: boolean
@@ -15,17 +15,41 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
   const queryClient = useQueryClient()
   const isManufacture = activeTab.includes('manufacture')
 
-  const [formData, setFormData] = useState<any>(partToEdit || {
+  const [formData, setFormData] = useState<any>({
     part_number: '',
     description: '',
     stock_quantity: 0,
     min_stock_level: 0,
     base_price: 0,
-    currency: 'USD',
+    currency: 'INR',
     manufacturer: '',
     manufacturer_part_number: '',
     supplier_id: null
   })
+
+  const { data: suppliers } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => suppliersApi.getSuppliers(),
+    enabled: isOpen
+  })
+
+  useEffect(() => {
+    if (partToEdit) {
+      setFormData(partToEdit)
+    } else {
+      setFormData({
+        part_number: '',
+        description: '',
+        stock_quantity: 0,
+        min_stock_level: 0,
+        base_price: 0,
+        currency: 'INR',
+        manufacturer: '',
+        manufacturer_part_number: '',
+        supplier_id: null
+      })
+    }
+  }, [partToEdit, isOpen])
 
   // Mutations
   const createMutation = useMutation({
@@ -53,11 +77,11 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     setFormData((prev: any) => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) : value
+      [name]: type === 'number' ? parseFloat(value) : (value === '' ? null : value)
     }))
   }
 
@@ -87,7 +111,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                 type="text"
                 name="part_number"
                 required
-                value={formData.part_number}
+                value={formData.part_number || ''}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
@@ -105,12 +129,38 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                 />
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Supplier</label>
+              <select
+                name="supplier_id"
+                value={formData.supplier_id || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              >
+                <option value="">No Supplier</option>
+                {suppliers?.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Manufacturer</label>
+              <input
+                type="text"
+                name="manufacturer"
+                value={formData.manufacturer || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
             
             <div className={`md:col-span-2`}>
               <label className="block text-sm font-medium text-gray-700">Description</label>
               <textarea
                 name="description"
-                rows={3}
+                rows={2}
                 value={formData.description || ''}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
@@ -122,7 +172,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
               <input
                 type="number"
                 name="stock_quantity"
-                value={formData.stock_quantity}
+                value={formData.stock_quantity || 0}
                 onChange={handleChange}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
               />
@@ -132,13 +182,13 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
               <label className="block text-sm font-medium text-gray-700">Base Price</label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
+                  <span className="text-gray-500 sm:text-sm">₹</span>
                 </div>
                 <input
                   type="number"
                   name="base_price"
                   step="0.01"
-                  value={formData.base_price}
+                  value={formData.base_price || 0}
                   onChange={handleChange}
                   className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md py-2 px-3 border outline-none"
                 />

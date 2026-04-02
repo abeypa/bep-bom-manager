@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Parts from './pages/Parts'
 import Projects from './pages/Projects'
+import ProjectDetails from './pages/ProjectDetails'
 import PurchaseOrders from './pages/PurchaseOrders'
 import Suppliers from './pages/Suppliers'
 import PartUsageLogs from './pages/PartUsageLogs'
@@ -34,6 +35,7 @@ function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="parts" element={<Parts />} />
               <Route path="projects" element={<Projects />} />
+              <Route path="projects/:id" element={<ProjectDetails />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="part-usage-logs" element={<PartUsageLogs />} />

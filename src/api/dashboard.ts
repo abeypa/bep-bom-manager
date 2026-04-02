@@ -15,6 +15,9 @@ export interface DashboardStats {
   active_projects: number;
   completed_projects: number;
   on_hold_projects: number;
+  total_suppliers: number;
+  pending_pos: number;
+  total_pos: number;
 }
 
 export const dashboardApi = {
