@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { partsApi, PartCategory } from '@/api/parts'
-import { Search, Plus, FileDown, MoreHorizontal, FileText, Image as ImageIcon, Trash2, Edit, Package } from 'lucide-react'
+import { Search, Plus, FileDown, MoreHorizontal, FileText, Image as ImageIcon, Trash2, Edit, Package, Upload } from 'lucide-react'
 import PartFormModal from '@/components/parts/PartFormModal'
+import PartImportModal from '@/components/parts/PartImportModal'
 
 const TABS: { id: PartCategory; name: string }[] = [
   { id: 'mechanical_manufacture', name: 'Mech Manufacture' },
@@ -16,6 +17,7 @@ const Parts = () => {
   const [activeTab, setActiveTab] = useState<PartCategory>('mechanical_manufacture')
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [partToEdit, setPartToEdit] = useState<any | null>(null)
 
   const handleAddPart = () => {
@@ -51,6 +53,13 @@ const Parts = () => {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex gap-3">
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Upload className="-ml-1 mr-2 h-5 w-5 text-blue-500" />
+            Upload JSON
+          </button>
           <button className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
             <FileDown className="-ml-1 mr-2 h-5 w-5 text-gray-400" />
             Export
@@ -241,6 +250,11 @@ const Parts = () => {
         onClose={() => setIsModalOpen(false)} 
         activeTab={activeTab}
         partToEdit={partToEdit}
+      />
+      <PartImportModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        activeTab={activeTab}
       />
     </div>
   )

@@ -1,18 +1,45 @@
-import { Package, FolderKanban, Users, FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Package, FolderKanban, Users, FileText, AlertTriangle, CheckCircle, RefreshCcw } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { dashboardApi } from '@/api/dashboard'
 
 const Dashboard = () => {
-  const { data: dbStats, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  
+  const { 
+    data: dbStats, 
+    isLoading, 
+    refetch: refetchStats, 
+    isRefetching: isRefetchingStats 
+  } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardApi.getStats,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   })
 
-  const { data: recentProjects = [], isLoading: isLoadingProjects } = useQuery({
+  const { 
+    data: recentProjects = [], 
+    isLoading: isLoadingProjects, 
+    refetch: refetchProjects, 
+    isRefetching: isRefetchingProjects 
+  } = useQuery({
     queryKey: ['recent-projects'],
     queryFn: dashboardApi.getRecentProjects,
+    refetchInterval: 60000, 
   })
+
+  const handleRefresh = async () => {
+    await Promise.all([refetchStats(), refetchProjects()]);
+    setLastUpdated(new Date());
+  };
+
+  useEffect(() => {
+    if (!isRefetchingStats && !isRefetchingProjects && !isLoading && !isLoadingProjects) {
+       setLastUpdated(new Date());
+    }
+  }, [isRefetchingStats, isRefetchingProjects, isLoading, isLoadingProjects]);
 
   const stats = [
     { name: 'Total Parts', value: dbStats?.total_parts ?? '-', icon: Package, color: 'bg-blue-500' },
@@ -20,20 +47,45 @@ const Dashboard = () => {
     { name: 'Completed Projects', value: dbStats?.completed_projects ?? '-', icon: CheckCircle, color: 'bg-indigo-500' },
     { name: 'Low Stock Alerts', value: dbStats?.low_stock_alerts ?? '-', icon: AlertTriangle, color: 'bg-red-500' },
     { name: 'On Hold Projects', value: dbStats?.on_hold_projects ?? '-', icon: FileText, color: 'bg-yellow-500' },
+    { name: 'Total POs', value: dbStats?.total_pos ?? '-', icon: FileText, color: 'bg-indigo-600' },
   ]
 
-  if (isLoading || isLoadingProjects) {
-    return <div className="flex justify-center items-center h-64">Loading dashboard...</div>
-  }
+  const isRefreshing = isRefetchingStats || isRefetchingProjects;
 
+  if (isLoading || isLoadingProjects) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64 space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <p className="text-gray-500 animate-pulse font-medium">Synchronizing dashboard data...</p>
+      </div>
+    )
+  }
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Overview of your parts inventory, projects, and purchase orders.
-        </p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Overview of your parts inventory, projects, and purchase orders.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className={`
+              inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all
+              ${isRefreshing ? 'opacity-75 cursor-not-allowed bg-gray-50' : 'hover:shadow-sm'}
+            `}
+          >
+            <RefreshCcw className={`-ml-1 mr-2 h-4 w-4 text-gray-400 ${isRefreshing ? 'animate-spin text-primary-500' : ''}`} />
+            {isRefreshing ? 'Syncing...' : 'Sync Now'}
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}

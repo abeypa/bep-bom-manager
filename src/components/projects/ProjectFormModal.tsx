@@ -41,6 +41,8 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit }: ProjectFormModalPr
     mutationFn: (newProject: ProjectInsert) => projectsApi.createProject(newProject),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['recent-projects'] })
       onClose()
     }
   })
@@ -50,6 +52,8 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit }: ProjectFormModalPr
       projectsApi.updateProject(id, project),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['recent-projects'] })
       onClose()
     }
   })
