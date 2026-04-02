@@ -20,6 +20,20 @@ export const purchaseOrdersApi = {
     if (error) throw error
     return data as (PurchaseOrder & { projects: { project_name: string, project_number: string }, suppliers: { name: string } })[]
   },
+
+  getProjectPurchaseOrders: async (projectId: number) => {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select(`
+        *,
+        suppliers (name)
+      `)
+      .eq('project_id', projectId)
+      .order('po_date', { ascending: false })
+      
+    if (error) throw error
+    return data
+  },
   
   getPurchaseOrder: async (id: number) => {
     const { data, error } = await supabase

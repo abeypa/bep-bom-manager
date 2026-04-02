@@ -86,29 +86,31 @@ const CreatePOFromBOMModal = ({ isOpen, onClose, project, selectedPartIds }: Pro
         po_number: `PO-${Date.now().toString().slice(-6)}`, // Temporary PO number generation
         po_date: new Date().toISOString(),
         currency: currency,
-        sub_total: totalAmount,
-        tax_amount: 0,
-        shipping_amount: 0,
         grand_total: totalAmount,
+        total_items: selectedParts.length,
+        total_quantity: selectedParts.reduce((acc, p) => acc + (p.quantity || 0), 0),
         status: 'Pending',
         notes: notes,
         created_date: new Date().toISOString()
       }
 
       const items = selectedParts.map(p => ({
-        part_number: p.catalogItem?.part_number,
-        description: p.catalogItem?.description,
+        purchase_order_id: 0, // Placeholder, handled by API transaction
+        part_type: p.tableName,
+        part_number: p.catalogItem?.part_number || '',
+        description: p.catalogItem?.description || '',
         quantity: p.quantity,
-        unit_price: p.unit_price,
-        total_price: p.quantity * (p.unit_price || 0),
-        part_table_name: p.tableName,
-        part_id: p.mechanical_manufacture_id || p.mechanical_bought_out_part_id || p.electrical_manufacture_id || p.electrical_bought_out_part_id || p.pneumatic_bought_out_part_id
+        unit_price: p.unit_price || 0,
+        discount_percent: 0,
+        total_amount: p.quantity * (p.unit_price || 0),
+        project_part_id: p.id
       }))
 
       return purchaseOrdersApi.createPurchaseOrderWithItems(poData as any, items)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['project-pos', project.id] })
       alert('Purchase Order created successfully!')
       onClose()
     },

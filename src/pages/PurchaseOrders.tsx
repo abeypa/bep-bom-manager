@@ -11,35 +11,46 @@ const PurchaseOrders = () => {
     queryFn: () => purchaseOrdersApi.getPurchaseOrders()
   })
 
-  const filteredPOs = (purchaseOrders || []).filter(po => 
-    po.po_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (po as any).suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (po as any).projects?.project_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredPOs = (purchaseOrders || []).filter(po => {
+    const s = searchTerm.toLowerCase()
+    return (
+      (po.po_number?.toLowerCase() || '').includes(s) ||
+      (po.suppliers?.name?.toLowerCase() || '').includes(s) ||
+      (po.projects?.project_name?.toLowerCase() || '').includes(s) ||
+      (po.projects?.project_number?.toLowerCase() || '').includes(s)
+    )
+  })
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      Pending: 'bg-yellow-100 text-yellow-800',
-      Sent: 'bg-blue-100 text-blue-800',
-      Confirmed: 'bg-indigo-100 text-indigo-800',
-      Partial: 'bg-orange-100 text-orange-800',
-      Received: 'bg-green-100 text-green-800',
-      Cancelled: 'bg-red-100 text-red-800'
+      Pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+      Sent: 'bg-blue-100 text-blue-800 border border-blue-200',
+      Confirmed: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
+      Partial: 'bg-orange-100 text-orange-800 border border-orange-200',
+      Received: 'bg-green-100 text-green-800 border border-green-200',
+      Cancelled: 'bg-red-100 text-red-800 border border-red-200'
     }
-    return colors[status] || 'bg-gray-100 text-gray-800'
+    return colors[status] || 'bg-gray-100 text-gray-800 border border-gray-200'
   }
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Purchase Orders</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Track and manage your project procurement.
+          <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Purchase Orders</h1>
+          <p className="mt-1 text-sm text-gray-500 font-medium font-mono">
+            Track and manage project procurement cycles.
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <button className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+          <button 
+            onClick={() => {
+              // Redirect to projects to create PO from BOM (Standard Workflow)
+              // Or in future, open a global PO wizard
+              window.location.hash = '#/projects'
+            }}
+            className="inline-flex items-center px-4 py-2.5 border border-transparent shadow-lg shadow-primary-100 text-sm font-black rounded-xl text-white bg-primary-600 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-widest"
+          >
             <Plus className="-ml-1 mr-2 h-5 w-5" />
             Create PO
           </button>
@@ -47,13 +58,13 @@ const PurchaseOrders = () => {
       </div>
 
       <div className="mb-6 flex gap-4">
-        <div className="flex-1 relative rounded-md shadow-sm">
+        <div className="flex-1 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 px-3 border outline-none"
+            className="focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 text-sm border-gray-200 rounded-xl py-3 px-4 border outline-none bg-white shadow-sm transition-all"
             placeholder="Search POs by number, supplier, or project..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

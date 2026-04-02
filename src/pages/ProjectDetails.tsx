@@ -26,6 +26,7 @@ import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
 import ProjectAddPartModal from '@/components/projects/ProjectAddPartModal'
 import ProjectEditPartModal from '@/components/projects/ProjectEditPartModal'
 import CreatePOFromBOMModal from '@/components/projects/CreatePOFromBOMModal'
+import { purchaseOrdersApi } from '@/api/purchase-orders'
 
 const resolvePartType = (p: any) => {
   if (p.mechanical_manufacture_id) return { type: 'MECH-MFG', id: p.mechanical_manufacture_id, ref: p.mechanical_manufacture };
@@ -49,6 +50,7 @@ const ProjectDetails = () => {
   const [isGeneratePOModalOpen, setIsGeneratePOModalOpen] = useState(false)
   const [isEditPartModalOpen, setIsEditPartModalOpen] = useState(false)
   const [partToEdit, setPartToEdit] = useState<any>(null)
+  const [activeTab, setActiveTab] = useState<'bom' | 'pos'>('bom')
   
   const togglePartSelection = (partId: number) => {
     const newSelection = new Set(selectedPartIds)
@@ -67,6 +69,12 @@ const ProjectDetails = () => {
   const { data: project, isLoading } = useQuery<any>({
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.getProject(projectId)
+  })
+
+  const { data: projectPOs } = useQuery({
+    queryKey: ['project-pos', projectId],
+    queryFn: () => purchaseOrdersApi.getProjectPurchaseOrders(projectId),
+    enabled: !!projectId
   })
 
   const openAddSection = () => {
@@ -337,19 +345,52 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center">
-              <Folder className="h-5 w-5 mr-2 text-primary-600" />
-              BOM Sections
-            </h2>
-            <button 
-              onClick={openAddSection}
-              className="inline-flex items-center text-sm font-bold text-primary-600 hover:text-primary-700 hover:underline transition-all"
+          {/* Tabs Navigation */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('bom')}
+              className={`flex items-center px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
+                activeTab === 'bom' 
+                  ? 'border-primary-600 text-primary-600 bg-primary-50/50' 
+                  : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              <PlusCircle className="h-4 w-4 mr-1.5" />
-              New Section
+              <Layers className="h-4 w-4 mr-2" />
+              Bill of Materials
+            </button>
+            <button
+              onClick={() => setActiveTab('pos')}
+              className={`flex items-center px-6 py-4 text-sm font-black uppercase tracking-widest border-b-2 transition-all ${
+                activeTab === 'pos' 
+                  ? 'border-primary-600 text-primary-600 bg-primary-50/50' 
+                  : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Purchase Orders
+              {projectPOs && projectPOs.length > 0 && (
+                <span className="ml-2 bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full text-[10px]">
+                  {projectPOs.length}
+                </span>
+              )}
             </button>
           </div>
+
+          {activeTab === 'bom' ? (
+            <>
+              <div className="flex items-center justify-between pt-2">
+                <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                  <Folder className="h-5 w-5 mr-2 text-primary-600" />
+                  BOM Sections
+                </h2>
+                <button 
+                  onClick={openAddSection}
+                  className="inline-flex items-center text-sm font-bold text-primary-600 hover:text-primary-700 hover:underline transition-all"
+                >
+                  <PlusCircle className="h-4 w-4 mr-1.5" />
+                  New Section
+                </button>
+              </div>
 
           {!project.sections || project.sections.length === 0 ? (
             <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
@@ -534,6 +575,60 @@ const ProjectDetails = () => {
               ))}
             </div>
           )}
+        </>
+      ) : (
+        /* Purchase Orders Tab Content */
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pt-2">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center">
+              <ShoppingCart className="h-5 w-5 mr-2 text-primary-600" />
+              Project Purchase Orders
+            </h2>
+          </div>
+          
+          {!projectPOs || projectPOs.length === 0 ? (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+              <ShoppingCart className="mx-auto h-12 w-12 text-gray-300" />
+              <h3 className="mt-2 text-sm font-bold text-gray-900">No POs Generated</h3>
+              <p className="mt-1 text-sm text-gray-500 max-w-xs mx-auto">
+                Once you select parts from the BOM sections above, you can generate Purchase Orders for suppliers.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {projectPOs.map((po: any) => (
+                <div key={po.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 hover:border-primary-200 transition-all group">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center space-x-4">
+                       <div className="bg-primary-50 p-3 rounded-xl group-hover:bg-primary-100 transition-colors">
+                          <FileText className="h-6 w-6 text-primary-600" />
+                       </div>
+                       <div>
+                         <div className="flex items-center space-x-2">
+                           <span className="text-xs font-black text-primary-600 font-mono tracking-widest">{po.po_number}</span>
+                           <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                             po.status === 'Received' ? 'bg-green-50 text-green-700 border-green-200' :
+                             po.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                             'bg-gray-50 text-gray-600 border-gray-200'
+                           }`}>
+                             {po.status}
+                           </span>
+                         </div>
+                         <h4 className="text-sm font-bold text-gray-900 mt-1">{(po as any).suppliers?.name || 'N/A'}</h4>
+                         <p className="text-[10px] text-gray-400 font-medium mt-0.5">{new Date(po.po_date).toLocaleDateString()}</p>
+                       </div>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-lg font-black text-gray-900 tabular-nums">{po.currency} {po.grand_total?.toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{po.total_items} items recorded</p>
+                     </div>
+                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
         </div>
       </div>
 
