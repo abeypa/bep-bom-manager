@@ -31,6 +31,7 @@ export const projectsApi = {
         )
       `)
       .eq('id', id)
+      .order('sort_order', { foreignTable: 'project_sections', ascending: true })
       .single()
       
     if (error) throw error
@@ -87,5 +88,45 @@ export const projectsApi = {
       
     if (error) throw error
     return data
+  },
+
+  updateSection: async (id: number, section: any) => {
+    const { data, error } = await (supabase.from('project_sections') as any)
+      .update(section)
+      .eq('id', id)
+      .select()
+      .single()
+      
+    if (error) throw error
+    return data
+  },
+  
+  deleteSection: async (id: number) => {
+    const { error } = await supabase
+      .from('project_sections')
+      .delete()
+      .eq('id', id)
+      
+    if (error) throw error
+  },
+
+  // Project Parts (Adding parts to sections)
+  addPartToSection: async (payload: any) => {
+    const { data, error } = await (supabase.from('project_parts') as any)
+      .insert([payload])
+      .select()
+      .single()
+      
+    if (error) throw error
+    return data
+  },
+
+  removePartFromSection: async (id: number) => {
+    const { error } = await supabase
+      .from('project_parts')
+      .delete()
+      .eq('id', id)
+      
+    if (error) throw error
   }
 }

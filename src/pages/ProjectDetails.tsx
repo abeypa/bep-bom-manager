@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { projectsApi } from '@/api/projects'
 import { 
   ArrowLeft, 
@@ -12,7 +12,6 @@ import {
   Package,
   Clock,
   User,
-  Info,
   Calendar,
   Layers,
   MoreVertical,
@@ -21,16 +20,41 @@ import {
   Trash2
 } from 'lucide-react'
 
+import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
+
 const ProjectDetails = () => {
   const { id } = useParams()
   const projectId = parseInt(id!)
   const queryClient = useQueryClient()
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false)
+  const [sectionToEdit, setSectionToEdit] = useState<any>(null)
   
   const { data: project, isLoading } = useQuery<any>({
     queryKey: ['project', projectId],
     queryFn: () => projectsApi.getProject(projectId)
   })
+
+  const openAddSection = () => {
+    setSectionToEdit(null)
+    setIsAddSectionModalOpen(true)
+  }
+
+  const openEditSection = (section: any) => {
+    setSectionToEdit(section)
+    setIsAddSectionModalOpen(true)
+  }
+
+  const handleDeleteSection = async (sectionId: number) => {
+    if (confirm('Are you sure you want to delete this section? All parts in this section will be removed.')) {
+      try {
+        await projectsApi.deleteSection(sectionId)
+        queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      } catch (error) {
+        console.error('Error deleting section:', error)
+        alert('Failed to delete section')
+      }
+    }
+  }
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -47,7 +71,7 @@ const ProjectDetails = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex justify-center items-center">
+      <div className="flex-1 flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     )
@@ -180,13 +204,16 @@ const ProjectDetails = () => {
               <Folder className="h-5 w-5 mr-2 text-primary-600" />
               BOM Sections
             </h2>
-            <button className="inline-flex items-center text-sm font-bold text-primary-600 hover:text-primary-700 hover:underline transition-all">
+            <button 
+              onClick={openAddSection}
+              className="inline-flex items-center text-sm font-bold text-primary-600 hover:text-primary-700 hover:underline transition-all"
+            >
               <PlusCircle className="h-4 w-4 mr-1.5" />
               New Section
             </button>
           </div>
 
-          {! (project as any).sections || (project as any).sections.length === 0 ? (
+          {!project.sections || project.sections.length === 0 ? (
             <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
               <Package className="mx-auto h-12 w-12 text-gray-300" />
               <h3 className="mt-2 text-sm font-bold text-gray-900">No BOM Sections</h3>
@@ -194,6 +221,7 @@ const ProjectDetails = () => {
                 Break down your project into manageable BOM sections like 'Main Frame', 'Electrical Panel', etc.
               </p>
               <button 
+                onClick={openAddSection}
                 className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -202,7 +230,7 @@ const ProjectDetails = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {(project as any).sections.map((section: any) => (
+              {project.sections.map((section: any) => (
                 <div key={section.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden group hover:border-primary-200 transition-colors">
                   <div className="p-4 sm:px-6 flex items-center justify-between bg-gray-50 border-b border-gray-100">
                     <div className="flex items-center space-x-3">
@@ -210,16 +238,22 @@ const ProjectDetails = () => {
                         <FileText className="h-5 w-5 text-gray-400 group-hover:text-primary-600" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900">{section.name}</h4>
+                        <h4 className="text-sm font-bold text-gray-900">{section.section_name}</h4>
                         <p className="text-xs font-medium text-gray-500">{section.parts?.length || 0} parts listed</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors">
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Part
+                      <button 
+                        onClick={() => openEditSection(section)}
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors overflow-hidden relative group/btn"
+                      >
+                        <Settings className="h-3.5 w-3.5 mr-1" /> Edit
                       </button>
-                      <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <MoreVertical className="h-4 w-4" />
+                      <button 
+                        onClick={() => handleDeleteSection(section.id)}
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                       </button>
                     </div>
                   </div>
@@ -229,11 +263,11 @@ const ProjectDetails = () => {
                       <table className="min-w-full divide-y divide-gray-100">
                         <thead className="bg-white">
                           <tr>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest uppercase">ID</th>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest uppercase">Qty</th>
-                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest uppercase">Notes</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
+                            <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Notes</th>
                             <th className="relative px-6 py-3">
-                              <span className="sr-only">Delete</span>
+                              <span className="sr-only">Actions</span>
                             </th>
                           </tr>
                         </thead>
@@ -246,7 +280,7 @@ const ProjectDetails = () => {
                               <td className="px-6 py-3 whitespace-nowrap text-xs font-bold text-gray-900 tabular-nums">
                                 {p.quantity} {p.unit || 'pcs'}
                               </td>
-                              <td className="px-6 py-3 text-xs text-gray-500 line-clamp-1 italic max-w-xs">
+                              <td className="px-6 py-3 text-xs text-gray-500 truncate italic max-w-xs">
                                 {p.notes || '-'}
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
@@ -270,6 +304,13 @@ const ProjectDetails = () => {
           )}
         </div>
       </div>
+
+      <ProjectSectionModal 
+        isOpen={isAddSectionModalOpen}
+        onClose={() => setIsAddSectionModalOpen(false)}
+        projectId={projectId}
+        sectionToEdit={sectionToEdit}
+      />
     </div>
   )
 }

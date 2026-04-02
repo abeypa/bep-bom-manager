@@ -1,0 +1,152 @@
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Save, Layers } from 'lucide-react';
+import { projectsApi, ProjectSectionInsert } from '@/api/projects';
+
+interface ProjectSectionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  projectId: number;
+  sectionToEdit?: any | null;
+}
+
+const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: ProjectSectionModalProps) => {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState<Partial<ProjectSectionInsert>>({
+    section_name: '',
+    description: '',
+    status: 'planning',
+    project_id: projectId
+  });
+
+  useEffect(() => {
+    if (sectionToEdit) {
+      setFormData(sectionToEdit);
+    } else {
+      setFormData({
+        section_name: '',
+        description: '',
+        status: 'planning',
+        project_id: projectId
+      });
+    }
+  }, [sectionToEdit, isOpen, projectId]);
+
+  const mutation = useMutation({
+    mutationFn: (data: ProjectSectionInsert) => 
+      sectionToEdit 
+        ? (projectsApi as any).updateSection(sectionToEdit.id, data) 
+        : projectsApi.createSection(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      onClose();
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.section_name) return;
+    
+    mutation.mutate({
+      ...formData,
+      project_id: projectId
+    } as ProjectSectionInsert);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden border border-gray-100">
+        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-primary-100 rounded-lg text-primary-600">
+              <Layers className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">
+              {sectionToEdit ? 'Edit BOM Section' : 'Add BOM Section'}
+            </h3>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Section Name *</label>
+              <input
+                type="text"
+                name="section_name"
+                required
+                placeholder="e.g. Main Frame, Electrical Control Panel"
+                value={formData.section_name || ''}
+                onChange={handleChange}
+                className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-gray-300"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Description (Optional)</label>
+              <textarea
+                name="description"
+                rows={3}
+                placeholder="Briefly describe what this section covers..."
+                value={formData.description || ''}
+                onChange={handleChange}
+                className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all placeholder:text-gray-300 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Status</label>
+              <select
+                name="status"
+                value={formData.status || 'planning'}
+                onChange={handleChange}
+                className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              >
+                <option value="planning">Planning</option>
+                <option value="design">Design</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="inline-flex justify-center items-center px-8 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {mutation.isPending ? 'Saving...' : 'Save Section'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectSectionModal;
