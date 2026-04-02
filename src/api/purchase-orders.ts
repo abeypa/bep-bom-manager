@@ -38,8 +38,7 @@ export const purchaseOrdersApi = {
   },
   
   createPurchaseOrder: async (po: PurchaseOrderInsert) => {
-    const { data, error } = await supabase
-      .from('purchase_orders')
+    const { data, error } = await (supabase.from('purchase_orders') as any)
       .insert([po])
       .select()
       .single()
@@ -49,8 +48,7 @@ export const purchaseOrdersApi = {
   },
   
   updatePurchaseOrder: async (id: number, po: PurchaseOrderUpdate) => {
-    const { data, error } = await supabase
-      .from('purchase_orders')
+    const { data, error } = await (supabase.from('purchase_orders') as any)
       .update(po)
       .eq('id', id)
       .select()

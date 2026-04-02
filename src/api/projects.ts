@@ -38,8 +38,7 @@ export const projectsApi = {
   },
   
   createProject: async (project: ProjectInsert) => {
-    const { data, error } = await supabase
-      .from('projects')
+    const { data, error } = await (supabase.from('projects') as any)
       .insert([project])
       .select()
       .single()
@@ -49,8 +48,7 @@ export const projectsApi = {
   },
   
   updateProject: async (id: number, project: ProjectUpdate) => {
-    const { data, error } = await supabase
-      .from('projects')
+    const { data, error } = await (supabase.from('projects') as any)
       .update(project)
       .eq('id', id)
       .select()
@@ -82,8 +80,7 @@ export const projectsApi = {
   },
 
   createSection: async (section: ProjectSectionInsert) => {
-    const { data, error } = await supabase
-      .from('project_sections')
+    const { data, error } = await (supabase.from('project_sections') as any)
       .insert([section])
       .select()
       .single()

@@ -28,8 +28,7 @@ export const suppliersApi = {
   },
   
   createSupplier: async (supplier: SupplierInsert) => {
-    const { data, error } = await supabase
-      .from('suppliers')
+    const { data, error } = await (supabase.from('suppliers') as any)
       .insert([supplier])
       .select()
       .single()
@@ -39,8 +38,7 @@ export const suppliersApi = {
   },
   
   updateSupplier: async (id: number, supplier: SupplierUpdate) => {
-    const { data, error } = await supabase
-      .from('suppliers')
+    const { data, error } = await (supabase.from('suppliers') as any)
       .update(supplier)
       .eq('id', id)
       .select()
