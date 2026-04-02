@@ -10,6 +10,7 @@ import ProjectDetails from './pages/ProjectDetails'
 import PurchaseOrders from './pages/PurchaseOrders'
 import Suppliers from './pages/Suppliers'
 import PartUsageLogs from './pages/PartUsageLogs'
+import PartInOut from './pages/PartInOut'
 import AppLayout from './components/layout/AppLayout'
 
 const queryClient = new QueryClient({
@@ -39,6 +40,7 @@ function App() {
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="part-usage-logs" element={<PartUsageLogs />} />
+              <Route path="stock-movement" element={<PartInOut />} />
             </Route>
           </Routes>
         </AuthProvider>

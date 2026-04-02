@@ -1,20 +1,27 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useState } from 'react'
-import { Menu, X, Home, Package, FolderKanban, FileText, Users, BarChart3, LogOut } from 'lucide-react'
+import { Menu, X, Home, Package, FolderKanban, FileText, Users, BarChart3, LogOut, ArrowLeftRight } from 'lucide-react'
 
 const AppLayout = () => {
   const { user, signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Parts', href: '/parts', icon: Package },
+    { name: 'Stock Movement', href: '/stock-movement', icon: ArrowLeftRight },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Purchase Orders', href: '/purchase-orders', icon: FileText },
     { name: 'Suppliers', href: '/suppliers', icon: Users },
     { name: 'Usage Logs', href: '/part-usage-logs', icon: BarChart3 },
   ]
+
+  const isActive = (href: string) => {
+    if (href === '/projects') return location.pathname === '/projects' || location.pathname.startsWith('/projects/')
+    return location.pathname === href
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,13 +36,18 @@ const AppLayout = () => {
             <nav className="flex-1 px-2 pb-4 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon
+                const active = isActive(item.href)
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
+                      active
+                        ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600 -ml-0.5 pl-1.5'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
                   >
-                    <Icon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" />
+                    <Icon className={`mr-3 h-5 w-5 ${active ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'}`} />
                     {item.name}
                   </Link>
                 )
@@ -80,13 +92,19 @@ const AppLayout = () => {
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon
+                const active = isActive(item.href)
                 return (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    onClick={() => setSidebarOpen(false)}
+                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                      active
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
                   >
-                    <Icon className="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-500" />
+                    <Icon className={`mr-4 h-6 w-6 ${active ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'}`} />
                     {item.name}
                   </Link>
                 )
