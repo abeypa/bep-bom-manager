@@ -8,6 +8,11 @@ const Dashboard = () => {
     queryFn: dashboardApi.getStats,
   })
 
+  const { data: recentProjects = [], isLoading: isLoadingProjects } = useQuery({
+    queryKey: ['recent-projects'],
+    queryFn: dashboardApi.getRecentProjects,
+  })
+
   const stats = [
     { name: 'Total Parts', value: dbStats?.total_parts ?? '-', icon: Package, color: 'bg-blue-500' },
     { name: 'Active Projects', value: dbStats?.active_projects ?? '-', icon: FolderKanban, color: 'bg-green-500' },
@@ -16,14 +21,7 @@ const Dashboard = () => {
     { name: 'On Hold Projects', value: dbStats?.on_hold_projects ?? '-', icon: FileText, color: 'bg-yellow-500' },
   ]
 
-  const recentProjects = [
-    { id: 1, name: 'Automated Dispensing System', number: 'PRJ-2024-001', status: 'Design', progress: 65 },
-    { id: 2, name: 'PCB Assembly Line', number: 'PRJ-2024-002', status: 'Planning', progress: 20 },
-    { id: 3, name: 'CNC Router Upgrade', number: 'PRJ-2024-003', status: 'Build', progress: 85 },
-    { id: 4, name: 'Robotic Arm Prototype', number: 'PRJ-2024-004', status: 'Completed', progress: 100 },
-  ]
-
-  if (isLoading) {
+  if (isLoading || isLoadingProjects) {
     return <div className="flex justify-center items-center h-64">Loading dashboard...</div>
   }
 
@@ -71,7 +69,9 @@ const Dashboard = () => {
           <div className="px-4 py-5 sm:p-6">
             <div className="flow-root">
               <ul className="-mb-8">
-                {recentProjects.map((project, projectIdx) => (
+                {recentProjects.length === 0 ? (
+                  <li className="text-sm text-gray-500 py-4">No recent projects found.</li>
+                ) : recentProjects.map((project, projectIdx) => (
                   <li key={project.id}>
                     <div className="relative pb-8">
                       {projectIdx !== recentProjects.length - 1 ? (
@@ -88,27 +88,18 @@ const Dashboard = () => {
                         </div>
                         <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
                           <div>
-                            <p className="text-sm text-gray-900 font-medium">{project.name}</p>
-                            <p className="text-sm text-gray-500">{project.number}</p>
+                            <p className="text-sm text-gray-900 font-medium">{project.project_name}</p>
+                            <p className="text-sm text-gray-500">{project.project_number}</p>
                           </div>
                           <div className="text-right text-sm whitespace-nowrap text-gray-500">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              project.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                              project.status === 'Build' ? 'bg-yellow-100 text-yellow-800' :
-                              project.status === 'Design' ? 'bg-blue-100 text-blue-800' :
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
+                              project.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              project.status === 'build' ? 'bg-yellow-100 text-yellow-800' :
+                              project.status === 'design' ? 'bg-blue-100 text-blue-800' :
                               'bg-gray-100 text-gray-800'
                             }`}>
-                              {project.status}
+                              {project.status.replace('_', ' ')}
                             </span>
-                            <div className="mt-2">
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-primary-600 h-2 rounded-full"
-                                  style={{ width: `${project.progress}%` }}
-                                />
-                              </div>
-                              <span className="text-xs text-gray-500 mt-1">{project.progress}%</span>
-                            </div>
                           </div>
                         </div>
                       </div>
