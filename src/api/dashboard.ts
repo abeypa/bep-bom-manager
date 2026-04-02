@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
+
+export type Project = Database['public']['Tables']['projects']['Row']
 
 export interface DashboardStats {
   total_parts: number;
@@ -20,5 +23,17 @@ export const dashboardApi = {
     
     if (error) throw error
     return data as unknown as DashboardStats
+  },
+  
+  getRecentProjects: async (): Promise<Project[]> => {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_date', { ascending: false })
+      .limit(5)
+      
+    if (error) throw error
+    return data as Project[]
   }
 }
+
