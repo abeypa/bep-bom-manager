@@ -24,15 +24,17 @@ export interface FileMetadata {
 export interface StorageConfig {
   bucketName: string;
   maxFileSize: {
-    image: number;     // 5MB in bytes
-    pdf: number;       // 10MB in bytes
-    cad: number;       // 50MB in bytes
-    excel: number;     // 20MB in bytes
+    image: number;
+    pdf: number;
+    cad: number;
+    datasheet: number;
+    excel: number;
   };
   allowedMimeTypes: {
     image: string[];
     pdf: string[];
     cad: string[];
+    datasheet: string[];
     excel: string[];
   };
 }
@@ -56,10 +58,11 @@ export interface PartFilePaths {
 export const STORAGE_CONFIG: StorageConfig = {
   bucketName: 'drawings',
   maxFileSize: {
-    image: 5 * 1024 * 1024,     // 5MB
-    pdf: 10 * 1024 * 1024,      // 10MB
-    cad: 50 * 1024 * 1024,      // 50MB
-    excel: 20 * 1024 * 1024,    // 20MB
+    image: 5 * 1024 * 1024,
+    pdf: 10 * 1024 * 1024,
+    cad: 50 * 1024 * 1024,
+    datasheet: 10 * 1024 * 1024,
+    excel: 20 * 1024 * 1024,
   },
   allowedMimeTypes: {
     image: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
@@ -72,6 +75,7 @@ export const STORAGE_CONFIG: StorageConfig = {
       'application/vnd.dwg',
       'image/vnd.dxf'
     ],
+    datasheet: ['application/pdf', 'text/plain'],
     excel: [
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

@@ -167,13 +167,13 @@ export async function listFiles(
     }
 
     return data.map(item => ({
-      id: item.id,
+      id: item.id || '',
       name: item.name,
       path: prefix ? `${prefix}/${item.name}` : item.name,
       size: item.metadata?.size || 0,
       mimeType: item.metadata?.mimetype || '',
-      category: 'image', // Default, would need better detection
-      uploadedAt: new Date(item.created_at),
+      category: 'image' as const,
+      uploadedAt: new Date(item.created_at || Date.now()),
       uploadedBy: item.owner || '',
     }));
   } catch (error) {
