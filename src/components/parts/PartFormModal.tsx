@@ -55,7 +55,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) : value
     }))
