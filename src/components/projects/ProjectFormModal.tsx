@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { X, Save, Clock, Target, CreditCard, Layers } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { X, Save } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { projectsApi, Project, ProjectInsert, ProjectUpdate } from '@/api/projects'
 
 interface ProjectFormModalProps {
@@ -49,13 +50,18 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit }: ProjectFormModalPr
     }
   }, [projectToEdit, isOpen])
 
+  const navigate = useNavigate();
+
   const createMutation = useMutation({
     mutationFn: (newProject: ProjectInsert) => projectsApi.createProject(newProject),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['recent-projects'] })
       onClose()
+      if (data?.id) {
+        navigate(`/projects/${data.id}`)
+      }
     }
   })
 

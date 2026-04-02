@@ -56,10 +56,17 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
     e.preventDefault();
     if (!formData.section_name) return;
     
-    mutation.mutate({
+    // Prepare data with proper cleanup for Supabase
+    const payload = {
       ...formData,
-      project_id: projectId
-    } as ProjectSectionInsert);
+      project_id: projectId,
+      estimated_cost: parseFloat(formData.estimated_cost?.toString() || '0'),
+      actual_cost: parseFloat(formData.actual_cost?.toString() || '0'),
+      start_date: formData.start_date || null,
+      target_completion_date: formData.target_completion_date || null
+    } as ProjectSectionInsert;
+
+    mutation.mutate(payload);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
