@@ -137,27 +137,55 @@ const Projects = () => {
                   </span>
                 </div>
 
-                <div className="space-y-2 mb-6">
+                <div className="space-y-3 mb-6">
                   {project.customer && (
                     <div className="flex items-center text-sm text-gray-600">
                       <User className="h-4 w-4 mr-2 text-gray-400" />
                       {project.customer}
                     </div>
                   )}
-                  {project.target_completion_date && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      Target: {new Date(project.target_completion_date).toLocaleDateString()}
+                  
+                  <div className="pt-2">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 flex items-center">
+                       <Layout className="h-3 w-3 mr-1" /> Workflow Progress
+                    </p>
+                    <div className="flex space-x-1.5">
+                      {[
+                        { key: 'mechanical_design_status', label: 'Mech' },
+                        { key: 'ee_design_status', label: 'Elec' },
+                        { key: 'pneumatic_design_status', label: 'Pneu' },
+                        { key: 'po_release_status', label: 'PO' },
+                        { key: 'part_arrival_status', label: 'Arrival' },
+                        { key: 'machine_build_status', label: 'Build' }
+                      ].map((phase) => {
+                        const status = (project as any)[phase.key] || 'not_started'
+                        const color = 
+                          status === 'completed' ? 'bg-green-500' :
+                          status === 'in_progress' ? 'bg-primary-500' :
+                          status === 'on_hold' ? 'bg-amber-500' :
+                          'bg-gray-200'
+                        return (
+                          <div key={phase.key} className="flex-1 group relative">
+                            <div className={`h-1.5 w-full rounded-full ${color} transition-all`} title={`${phase.label}: ${status}`} />
+                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                               <span className="text-[8px] font-black bg-gray-900 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                 {phase.label}
+                               </span>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  )}
-                  <div className="flex items-center text-sm text-gray-600">
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-600 pt-1">
                     <Briefcase className="h-4 w-4 mr-2 text-gray-400" />
                     Last Updated: {new Date(project.updated_date || project.created_date).toLocaleDateString()}
                   </div>
                 </div>
 
                 {project.description && (
-                  <p className="text-sm text-gray-500 line-clamp-2 italic border-l-2 border-gray-100 pl-3">
+                  <p className="text-xs text-gray-500 line-clamp-2 italic border-l-2 border-gray-100 pl-3 mt-4">
                     "{project.description}"
                   </p>
                 )}
