@@ -1,4 +1,5 @@
 import { Package, FolderKanban, Users, FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '@/api/dashboard'
 
@@ -119,8 +120,8 @@ const Dashboard = () => {
           </div>
           <div className="px-4 py-5 sm:p-6">
             <div className="grid grid-cols-2 gap-4">
-              <a
-                href="/parts"
+              <Link
+                to="/parts"
                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
               >
                 <div>
@@ -142,10 +143,10 @@ const Dashboard = () => {
                     <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                   </svg>
                 </span>
-              </a>
+              </Link>
 
-              <a
-                href="/projects"
+              <Link
+                to="/projects"
                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
               >
                 <div>
@@ -167,10 +168,10 @@ const Dashboard = () => {
                     <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                   </svg>
                 </span>
-              </a>
+              </Link>
 
-              <a
-                href="/purchase-orders"
+              <Link
+                to="/purchase-orders"
                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
               >
                 <div>
@@ -192,10 +193,10 @@ const Dashboard = () => {
                     <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                   </svg>
                 </span>
-              </a>
+              </Link>
 
-              <a
-                href="/suppliers"
+              <Link
+                to="/suppliers"
                 className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary-500 rounded-lg border border-gray-200 hover:border-primary-300 hover:shadow-md transition-all"
               >
                 <div>
@@ -217,7 +218,7 @@ const Dashboard = () => {
                     <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
                   </svg>
                 </span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

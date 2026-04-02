@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useState } from 'react'
 import { Menu, X, Home, Package, FolderKanban, FileText, Users, BarChart3, LogOut } from 'lucide-react'
@@ -30,14 +30,14 @@ const AppLayout = () => {
               {navigation.map((item) => {
                 const Icon = item.icon
                 return (
-                  <a
+                  <Link
                     key={item.name}
-                    href={item.href}
+                    to={item.href}
                     className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   >
                     <Icon className="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-500" />
                     {item.name}
-                  </a>
+                  </Link>
                 )
               })}
             </nav>
@@ -81,14 +81,14 @@ const AppLayout = () => {
               {navigation.map((item) => {
                 const Icon = item.icon
                 return (
-                  <a
+                  <Link
                     key={item.name}
-                    href={item.href}
+                    to={item.href}
                     className="group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   >
                     <Icon className="mr-4 h-6 w-6 text-gray-400 group-hover:text-gray-500" />
                     {item.name}
-                  </a>
+                  </Link>
                 )
               })}
             </nav>
