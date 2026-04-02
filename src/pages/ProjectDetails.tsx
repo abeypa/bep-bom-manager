@@ -18,11 +18,13 @@ import {
   PlusCircle,
   FileDown,
   Trash2,
-  ShoppingCart
+  ShoppingCart,
+  Edit2
 } from 'lucide-react'
 
 import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
 import ProjectAddPartModal from '@/components/projects/ProjectAddPartModal'
+import ProjectEditPartModal from '@/components/projects/ProjectEditPartModal'
 import CreatePOFromBOMModal from '@/components/projects/CreatePOFromBOMModal'
 
 const resolvePartType = (p: any) => {
@@ -45,6 +47,8 @@ const ProjectDetails = () => {
   const [activeSectionName, setActiveSectionName] = useState<string>('')
   const [selectedPartIds, setSelectedPartIds] = useState<Set<number>>(new Set())
   const [isGeneratePOModalOpen, setIsGeneratePOModalOpen] = useState(false)
+  const [isEditPartModalOpen, setIsEditPartModalOpen] = useState(false)
+  const [partToEdit, setPartToEdit] = useState<any>(null)
   
   const togglePartSelection = (partId: number) => {
     const newSelection = new Set(selectedPartIds)
@@ -79,6 +83,11 @@ const ProjectDetails = () => {
     setActiveSectionId(sectionId)
     setActiveSectionName(sectionName)
     setIsAddPartModalOpen(true)
+  }
+
+  const openEditPart = (part: any) => {
+    setPartToEdit(part)
+    setIsEditPartModalOpen(true)
   }
 
   const handleDeleteSection = async (sectionId: number) => {
@@ -262,9 +271,73 @@ const ProjectDetails = () => {
           )}
         </div>
 
-        {/* Right Column: BOM Sections */}
+        {/* Right Column: Workflow & BOM Sections */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
+          {/* Project Workflow Status Section */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-4 sm:px-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+               <h3 className="text-sm font-bold text-gray-900 flex items-center uppercase tracking-widest">
+                 <Layers className="h-4 w-4 mr-2 text-primary-600" /> Project Workflow
+               </h3>
+               <button 
+                 onClick={() => {
+                   // This button can navigate to an edit mode or open the project modal
+                   // For now, it's just a placeholder since edit is in the header later or we can add it here
+                 }}
+                 className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-2 py-1 rounded transition-colors"
+               >
+                 Track Progress
+               </button>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { key: 'mechanical_design_status', label: 'Mechanical Design' },
+                  { key: 'ee_design_status', label: 'Electrical Design' },
+                  { key: 'pneumatic_design_status', label: 'Pneumatic Design' },
+                  { key: 'po_release_status', label: 'PO Release' },
+                  { key: 'part_arrival_status', label: 'Part Arrival' },
+                  { key: 'machine_build_status', label: 'Machine Build' }
+                ].map((phase) => {
+                  const status = (project as any)[phase.key] || 'not_started';
+                  const getPhaseStatusDetails = (s: string) => {
+                    const map: Record<string, { label: string, color: string, progress: number }> = {
+                      not_started: { label: 'Not Started', color: 'bg-gray-200', progress: 0 },
+                      in_progress: { label: 'In Progress', color: 'bg-primary-500', progress: 50 },
+                      completed: { label: 'Completed', color: 'bg-green-500', progress: 100 },
+                      on_hold: { label: 'On Hold', color: 'bg-amber-500', progress: 25 }
+                    };
+                    return map[s] || map.not_started;
+                  };
+                  const details = getPhaseStatusDetails(status);
+                  
+                  return (
+                    <div key={phase.key} className="p-3 border border-gray-100 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-bold text-gray-900 uppercase tracking-tight">{phase.label}</span>
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                          status === 'completed' ? 'bg-green-100 text-green-700' :
+                          status === 'in_progress' ? 'bg-primary-100 text-primary-700' :
+                          status === 'on_hold' ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-200 text-gray-600'
+                        }`}>
+                          {details.label}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-1000 ${details.color}`}
+                          style={{ width: `${details.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
             <h2 className="text-lg font-bold text-gray-900 flex items-center">
               <Folder className="h-5 w-5 mr-2 text-primary-600" />
               BOM Sections
@@ -303,8 +376,32 @@ const ProjectDetails = () => {
                         <FileText className="h-5 w-5 text-gray-400 group-hover:text-primary-600" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900">{section.section_name}</h4>
-                        <p className="text-xs font-medium text-gray-500">{section.parts?.length || 0} parts listed</p>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-gray-900">{section.section_name}</h4>
+                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
+                            section.status === 'completed' ? 'bg-green-100 text-green-700' :
+                            section.status === 'in_progress' ? 'bg-indigo-100 text-indigo-700' :
+                            section.status === 'design' ? 'bg-blue-100 text-blue-700' :
+                            section.status === 'on_hold' ? 'bg-amber-100 text-amber-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            {section.status?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-3 mt-0.5">
+                           <p className="text-[10px] font-medium text-gray-400">{section.parts?.length || 0} parts</p>
+                           {(section.estimated_cost > 0 || section.actual_cost > 0) && (
+                             <p className="text-[10px] font-bold text-gray-500">
+                               Est: <span className="text-gray-900">${section.estimated_cost?.toFixed(0)}</span> | 
+                               Act: <span className={section.actual_cost > section.estimated_cost ? 'text-red-600' : 'text-green-600'}>${section.actual_cost?.toFixed(0)}</span>
+                             </p>
+                           )}
+                           {section.target_completion_date && (
+                             <p className="text-[10px] font-medium text-primary-600">
+                               Due: {new Date(section.target_completion_date).toLocaleDateString()}
+                             </p>
+                           )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -398,22 +495,30 @@ const ProjectDetails = () => {
                                 </span>
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button 
-                                  onClick={async () => {
-                                    if (confirm('Are you sure you want to remove this part from the BOM?')) {
-                                      try {
-                                        await projectsApi.removePartFromSection(p.id);
-                                        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-                                      } catch (error) {
-                                        console.error('Error removing part:', error);
-                                        alert('Failed to remove part');
+                                <div className="flex items-center space-x-2">
+                                  <button 
+                                    onClick={() => openEditPart(p)}
+                                    className="text-primary-400 hover:text-primary-600 transition-colors"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button 
+                                    onClick={async () => {
+                                      if (confirm('Are you sure you want to remove this part from the BOM?')) {
+                                        try {
+                                          await projectsApi.removePartFromSection(p.id);
+                                          queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                                        } catch (error) {
+                                          console.error('Error removing part:', error);
+                                          alert('Failed to remove part');
+                                        }
                                       }
-                                    }
-                                  }}
-                                  className="text-red-400 hover:text-red-600 transition-colors"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                    }}
+                                    className="text-red-400 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           )})}
@@ -445,6 +550,16 @@ const ProjectDetails = () => {
         projectId={projectId}
         sectionId={activeSectionId}
         sectionName={activeSectionName}
+      />
+
+      <ProjectEditPartModal
+        isOpen={isEditPartModalOpen}
+        onClose={() => {
+          setIsEditPartModalOpen(false)
+          setPartToEdit(null)
+        }}
+        projectId={projectId}
+        projectPart={partToEdit}
       />
 
       <CreatePOFromBOMModal

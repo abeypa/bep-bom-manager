@@ -16,6 +16,10 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
     section_name: '',
     description: '',
     status: 'planning',
+    estimated_cost: 0,
+    actual_cost: 0,
+    start_date: null,
+    target_completion_date: null,
     project_id: projectId
   });
 
@@ -27,6 +31,10 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
         section_name: '',
         description: '',
         status: 'planning',
+        estimated_cost: 0,
+        actual_cost: 0,
+        start_date: null,
+        target_completion_date: null,
         project_id: projectId
       });
     }
@@ -110,6 +118,58 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Estimated Cost</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
+                  <input
+                    type="number"
+                    name="estimated_cost"
+                    value={formData.estimated_cost || 0}
+                    onChange={handleChange}
+                    className="block w-full bg-gray-50 border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Actual Cost</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
+                  <input
+                    type="number"
+                    name="actual_cost"
+                    value={formData.actual_cost || 0}
+                    onChange={handleChange}
+                    className="block w-full bg-gray-50 border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Start Date</label>
+                <input
+                  type="date"
+                  name="start_date"
+                  value={formData.start_date || ''}
+                  onChange={handleChange}
+                  className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary-500 transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Completion Date</label>
+                <input
+                  type="date"
+                  name="target_completion_date"
+                  value={formData.target_completion_date || ''}
+                  onChange={handleChange}
+                  className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary-500 transition-all"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Status</label>
               <select
@@ -122,6 +182,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
                 <option value="design">Design</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="on_hold">On Hold</option>
               </select>
             </div>
           </div>

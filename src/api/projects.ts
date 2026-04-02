@@ -272,6 +272,89 @@ export const projectsApi = {
     return result;
   },
 
+  updatePartInSection: async (id: number, payload: any) => {
+    // 1. Get old Project Part
+    const { data: oldPP, error: fetchError } = await supabase
+      .from('project_parts')
+      .select(`
+        *,
+        section:project_sections(
+          project:projects(project_name)
+        )
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (fetchError || !oldPP) throw new Error('Part record not found');
+
+    const diff = payload.quantity - (oldPP as any).quantity;
+    
+    // Resolve master part table and ID
+    const partTypes = [
+       { key: 'mechanical_manufacture_id', table: 'mechanical_manufacture' },
+       { key: 'mechanical_bought_out_part_id', table: 'mechanical_bought_out' },
+       { key: 'electrical_manufacture_id', table: 'electrical_manufacture' },
+       { key: 'electrical_bought_out_part_id', table: 'electrical_bought_out' },
+       { key: 'pneumatic_bought_out_part_id', table: 'pneumatic_bought_out' }
+    ];
+    
+    let partTable = '';
+    let partId = 0;
+    for (const pt of partTypes) {
+      if ((oldPP as any)[pt.key]) {
+        partTable = pt.table;
+        partId = (oldPP as any)[pt.key];
+        break;
+      }
+    }
+
+    if (partTable && partId) {
+      // 2. Adjust Stock
+      const { data: part } = await (supabase.from(partTable) as any).select('stock_quantity, part_number').eq('id', partId).single();
+      if (part) {
+        const updatePayload: any = { 
+          stock_quantity: ((part as any).stock_quantity || 0) - diff
+        };
+        if (payload.update_master) {
+          updatePayload.base_price = payload.unit_price;
+          updatePayload.currency = payload.currency;
+        }
+
+        await (supabase.from(partTable) as any)
+          .update(updatePayload)
+          .eq('id', partId);
+
+        // 3. Update Log
+        const projectName = (oldPP as any).section?.project?.project_name;
+        if (projectName) {
+           const { data: log } = await (supabase.from('part_usage_logs') as any)
+             .select('*')
+             .eq('project_name', projectName)
+             .eq('part_number', (part as any).part_number)
+             .eq('part_table_name', partTable)
+             .maybeSingle();
+           
+           if (log) {
+             await (supabase.from('part_usage_logs') as any).update({ quantity: (log as any).quantity + diff }).eq('id', (log as any).id);
+           }
+        }
+      }
+    }
+
+    // 4. Update Project Part
+    const { error } = await (supabase.from('project_parts') as any)
+      .update({
+        quantity: payload.quantity,
+        unit_price: payload.unit_price,
+        currency: payload.currency,
+        reference_designator: payload.reference_designator,
+        notes: payload.notes
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
   removePartFromSection: async (id: number) => {
     // 1. Get Project Part and its relation to master parts
     const { data: pp, error: ppError } = await supabase
