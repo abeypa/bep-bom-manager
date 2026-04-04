@@ -44,7 +44,10 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
 
     setLoading(true);
     try {
-      await adminApi.createUser(email, password, fullName);
+      // Transform username to email if needed
+      const finalEmail = email.includes('@') ? email.trim() : `${email.trim()}@bepindia.com`;
+      
+      await adminApi.createUser(finalEmail, password, fullName);
       showToast('success', 'User created successfully');
       setEmail('');
       setPassword('');
@@ -96,14 +99,14 @@ function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUserModalProps) {
             </div>
 
             <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2 block">Email Address</label>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2 block">Username or Email</label>
               <div className="relative">
                 <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input 
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@bepindia.com"
+                  placeholder="e.g. rishi or rishi@bepindia.com"
                   className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                 />
               </div>
