@@ -196,11 +196,6 @@ export const projectsApi = {
     const project = (section as any).project;
     const vendorName = (part as any).suppliers?.name || null;
 
-    // 3. Negative stock guard
-    if (quantity > (part.stock_quantity || 0)) {
-       throw new Error(`Insufficient stock. Available: ${part.stock_quantity}, Requested: ${quantity}`);
-    }
-
     // 4. Check for existing part in project
     const partTypeKey = `${partTableValue}${partTableValue.includes('bought_out') && !partTableValue.includes('_part') ? '_part' : ''}_id`;
     const { data: existingPart } = await supabase
