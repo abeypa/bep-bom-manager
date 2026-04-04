@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { purchaseOrdersApi, POStatus } from '@/api/parts-api/purchase-orders'
+import { purchaseOrdersApi, POStatus } from '@/api/purchase-orders'
 import { 
   Search, Plus, FileText, ShoppingCart, Calendar, Factory, 
   ExternalLink, Trash2, ChevronDown, Filter, Package, AlertCircle, 

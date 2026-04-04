@@ -4,7 +4,7 @@ import { stockMovementsApi } from '@/api/stock-movements'
 import {
   ArrowDownToLine, ArrowUpFromLine, Search, Plus, Filter,
   Calendar, Briefcase, Factory, User, FileText, RefreshCw,
-  TrendingUp, RotateCcw, SlidersHorizontal
+  TrendingUp, RotateCcw, SlidersHorizontal, Package
 } from 'lucide-react'
 
 const PartInOut = () => {

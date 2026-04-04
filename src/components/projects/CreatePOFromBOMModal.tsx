@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { X, Search, CheckCircle2, AlertCircle, ShoppingCart, Info, TrendingDown, DollarSign } from 'lucide-react'
-import { suppliersApi } from '@/api/parts-api/suppliers'
-import { purchaseOrdersApi } from '@/api/parts-api/purchase-orders'
+import { suppliersApi } from '@/api/suppliers'
+import { purchaseOrdersApi } from '@/api/purchase-orders'
+import { Package } from 'lucide-react'
 
 interface Props {
   isOpen: boolean

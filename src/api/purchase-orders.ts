@@ -81,6 +81,17 @@ export const purchaseOrdersApi = {
     return data;
   },
 
+  updatePurchaseOrder: async (poId: number, updateData: any) => {
+    const { data, error } = await (supabase as any)
+      .from('purchase_orders')
+      .update(updateData)
+      .eq('id', poId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // Create with Items
   createPurchaseOrderWithItems: async (po: PurchaseOrderInsert, items: any[]) => {
     const { data: newPO, error: poError } = await (supabase as any).from('purchase_orders')

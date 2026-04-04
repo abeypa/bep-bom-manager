@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { X, Save, FileUp, Factory, Upload, FileText, Image as ImageIcon, Box } from 'lucide-react'
 import { partsApi, PartCategory } from '@/api/parts'
-import { suppliersApi } from '@/api/parts-api/suppliers'
-import FileUpload from '../ui/FileUpload'
+import { suppliersApi } from '@/api/suppliers'
+import { FileUpload } from '../ui/FileUpload'
 
 interface PartFormModalProps {
   isOpen: boolean
