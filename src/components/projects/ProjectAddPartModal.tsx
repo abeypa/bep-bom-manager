@@ -118,9 +118,9 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       onClose()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding part:', error)
-      alert('Failed to add part to section. Check console for details.')
+      alert(`Failed: ${error.message || JSON.stringify(error)}`)
     } finally {
       setIsSubmitting(false)
     }
