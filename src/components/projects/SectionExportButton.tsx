@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, File } from 'lucide-react';
+import { Download, FileText, File, FileSpreadsheet } from 'lucide-react';
 import exportUtils from '../../utils/export';
 import { useToast } from '../../context/ToastContext';
 
@@ -9,7 +9,11 @@ interface SectionExportButtonProps {
   projectName?: string;
 }
 
-export default function SectionExportButton({ sectionName, parts }: SectionExportButtonProps) {
+export default function SectionExportButton({ 
+  sectionName, 
+  parts, 
+  projectName = 'Project' 
+}: SectionExportButtonProps) {
   const { showToast } = useToast();
 
   const handleExportTXT = () => {
@@ -17,15 +21,40 @@ export default function SectionExportButton({ sectionName, parts }: SectionExpor
       exportUtils.exportSectionBOMToTXT(sectionName, parts);
       showToast('success', `${sectionName} BOM exported as TXT`);
     } catch (err) {
-      showToast('error', 'Failed to export BOM');
+      showToast('error', 'Failed to export BOM as TXT');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      // CSV export for BOM section
+      let csvContent = `BOM - ${sectionName}\n`;
+      csvContent += `Generated on,${new Date().toLocaleString('en-IN')}\n\n`;
+      csvContent += 'Part Number,Description,Qty,Unit Price,Discount %,Total\n';
+
+      parts.forEach((p: any) => {
+        const total = (p.unit_price || 0) * (p.quantity || 0) * (1 - (p.discount_percent || 0) / 100);
+        csvContent += `"${p.part_number || '-'}","${p.description || '-'}",${p.quantity || 0},${p.unit_price || 0},${p.discount_percent || 0},${total.toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sectionName}_BOM.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('success', `${sectionName} BOM exported as CSV`);
+    } catch (err) {
+      showToast('error', 'Failed to export BOM as CSV');
     }
   };
 
   const handleExportPDF = () => {
     try {
-      // Simple browser print for PDF (user can save as PDF)
       exportUtils.exportToPDF(`${sectionName}_BOM`);
-      showToast('success', `Opening Print Dialog for ${sectionName} BOM...`);
+      showToast('success', `Printing ${sectionName} BOM... (Save as PDF)`);
     } catch (err) {
       showToast('error', 'Failed to generate PDF');
     }
@@ -33,6 +62,14 @@ export default function SectionExportButton({ sectionName, parts }: SectionExpor
 
   return (
     <div className="flex gap-2">
+      <button
+        onClick={handleExportCSV}
+        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 rounded-2xl transition-colors"
+      >
+        <FileSpreadsheet className="w-4 h-4" />
+        CSV
+      </button>
+
       <button
         onClick={handleExportTXT}
         className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 rounded-2xl transition-colors"

@@ -6,7 +6,8 @@ export type PurchaseOrderInsert = Database['public']['Tables']['purchase_orders'
 export type PurchaseOrderUpdate = Database['public']['Tables']['purchase_orders']['Update']
 export type PurchaseOrderItem = Database['public']['Tables']['purchase_order_items']['Row']
 
-export type POStatus = 'Pending' | 'Sent' | 'Confirmed' | 'Partial' | 'Received' | 'Cancelled';
+// Updated status with Draft as initial state
+export type POStatus = 'Draft' | 'Released' | 'Pending' | 'Sent' | 'Confirmed' | 'Partial' | 'Received' | 'Cancelled';
 
 export const purchaseOrdersApi = {
   // Get all POs
@@ -23,12 +24,10 @@ export const purchaseOrdersApi = {
     return data;
   },
 
-  // Backward compatibility alias
   getPurchaseOrders: async () => {
     return purchaseOrdersApi.getAll();
   },
 
-  // Get single PO by project (for Project Details)
   getProjectPurchaseOrders: async (projectId: number) => {
     const { data, error } = await supabase
       .from('purchase_orders')
@@ -43,7 +42,7 @@ export const purchaseOrdersApi = {
     return data
   },
 
-  // Get single PO with full line items + snapshot data
+  // Get single PO with full details
   getById: async (poId: number) => {
     const { data, error } = await supabase
       .from('purchase_orders')
@@ -65,7 +64,6 @@ export const purchaseOrdersApi = {
     return data;
   },
 
-  // Backward compatibility alias
   getPurchaseOrder: async (id: number) => {
     return purchaseOrdersApi.getById(id);
   },
@@ -92,7 +90,6 @@ export const purchaseOrdersApi = {
     return data;
   },
 
-  // Create with Items
   createPurchaseOrderWithItems: async (po: PurchaseOrderInsert, items: any[]) => {
     const { data: newPO, error: poError } = await (supabase as any).from('purchase_orders')
       .insert([po])
@@ -117,29 +114,75 @@ export const purchaseOrdersApi = {
     return newPO;
   },
 
+  // Transition from Draft to Released (requires PDF)
+  releasePO: async (poId: number) => {
+    const { data: po, error: fetchError } = await supabase
+      .from('purchase_orders')
+      .select('status, bep_po_pdf_url')
+      .eq('id', poId)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!po) throw new Error('PO not found');
+
+    if ((po as any).status !== 'Draft') {
+      throw new Error('Only Draft POs can be released');
+    }
+
+    if (!(po as any).bep_po_pdf_url) {
+      throw new Error('Cannot release PO. Please attach BEP PO PDF document first.');
+    }
+
+    const { data, error } = await (supabase as any)
+      .from('purchase_orders')
+      .update({ 
+        status: 'Released', 
+        updated_date: new Date().toISOString() 
+      })
+      .eq('id', poId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   // Update PO status with validation
   updateStatus: async (poId: number, newStatus: POStatus) => {
     const { data: current } = await supabase
       .from('purchase_orders')
-      .select('status')
+      .select('status, bep_po_pdf_url')
       .eq('id', poId)
       .single();
 
+    if (!current) throw new Error('PO not found');
+    const currentStatus = (current as any).status || 'Draft';
+
+    // Transition rules
     const validTransitions: Record<string, POStatus[]> = {
+      'Draft':     ['Released', 'Cancelled'],
+      'Released':  ['Sent', 'Cancelled'],
       'Pending':   ['Sent', 'Cancelled'],
       'Sent':      ['Confirmed', 'Cancelled'],
       'Confirmed': ['Partial', 'Received', 'Cancelled'],
       'Partial':   ['Received', 'Cancelled'],
     };
 
-    const currentStatus = (current as any)?.status || 'Pending';
     if (validTransitions[currentStatus] && !validTransitions[currentStatus].includes(newStatus)) {
       throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
     }
 
+    // Special rule for release
+    if (newStatus === 'Released' && !(current as any).bep_po_pdf_url) {
+      throw new Error('Cannot release PO without attaching BEP PO PDF');
+    }
+
     const { data, error } = await (supabase as any)
       .from('purchase_orders')
-      .update({ status: newStatus, updated_date: new Date().toISOString() })
+      .update({ 
+        status: newStatus, 
+        updated_date: new Date().toISOString() 
+      })
       .eq('id', poId)
       .select()
       .single();
@@ -208,6 +251,7 @@ export const purchaseOrdersApi = {
         .from('purchase_order_items')
         .update({ 
           received_qty: ((poItem as any).received_qty || 0) + itemRequest.received_qty 
+          // Note: we accumulate receipt qty
         })
         .eq('id', itemRequest.id);
     }
@@ -215,7 +259,7 @@ export const purchaseOrdersApi = {
     return { success: true };
   },
 
-  // Delete PO (only if Pending or Cancelled)
+  // Delete PO (only if Draft or Cancelled)
   deletePO: async (poId: number) => {
     const { data: po } = await supabase
       .from('purchase_orders')
@@ -223,15 +267,14 @@ export const purchaseOrdersApi = {
       .eq('id', poId)
       .single();
 
-    if (!['Pending', 'Cancelled'].includes((po as any)?.status)) {
-      throw new Error('Only Pending or Cancelled POs can be deleted');
+    if (!['Draft', 'Cancelled'].includes((po as any)?.status)) {
+      throw new Error('Only Draft or Cancelled POs can be deleted');
     }
 
     const { error } = await (supabase as any).from('purchase_orders').delete().eq('id', poId);
     if (error) throw error;
   },
 
-  // Backward compatibility alias
   deletePurchaseOrder: async (id: number) => {
     return purchaseOrdersApi.deletePO(id);
   },

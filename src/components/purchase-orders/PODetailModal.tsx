@@ -1,484 +1,336 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  X, Save, Trash2, ChevronRight, Package, FileText,
-  CheckCircle, AlertCircle, Clock, Send, Ban, TruckIcon,
-  Edit2, PackageCheck
-} from 'lucide-react'
-import { purchaseOrdersApi, POStatus } from '@/api/purchase-orders'
+import React, { useState, useEffect } from 'react';
+import { X, Truck, CheckCircle, Trash2, IndianRupee, Calendar, Upload, FileText, ExternalLink } from 'lucide-react';
+import { purchaseOrdersApi } from '../../api/purchase-orders';
+import { useToast } from '../../context/ToastContext';
 
 interface PODetailModalProps {
-  isOpen: boolean
-  onClose: () => void
-  poId: number | null
-  onStatusUpdated?: () => void
+  isOpen: boolean;
+  onClose: () => void;
+  poId: number;
+  onStatusUpdated?: () => void;
 }
 
-const STATUS_ICONS: Record<string, any> = {
-  Pending: Clock,
-  Sent: Send,
-  Confirmed: CheckCircle,
-  Partial: Package,
-  Received: PackageCheck,
-  Cancelled: Ban
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  Pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  Sent: 'bg-blue-100 text-blue-800 border-blue-200',
-  Confirmed: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  Partial: 'bg-orange-100 text-orange-800 border-orange-200',
-  Received: 'bg-green-100 text-green-800 border-green-200',
-  Cancelled: 'bg-red-100 text-red-800 border-red-200'
-}
-
-const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
-  const queryClient = useQueryClient()
-  const [activeView, setActiveView] = useState<'details' | 'receive'>('details')
-  const [isEditing, setIsEditing] = useState(false)
-  const [editNotes, setEditNotes] = useState('')
-  const [editTerms, setEditTerms] = useState('')
-  const [receiveQuantities, setReceiveQuantities] = useState<Record<number, number>>({})
-
-  const { data: po, isLoading } = useQuery({
-    queryKey: ['purchase-order', poId],
-    queryFn: () => purchaseOrdersApi.getById(poId!),
-    enabled: !!poId && isOpen
-  })
+export default function PODetailModal({
+  isOpen,
+  onClose,
+  poId,
+  onStatusUpdated,
+}: PODetailModalProps) {
+  const { showToast } = useToast();
+  const [po, setPo] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [bepPoPdfUrl, setBepPoPdfUrl] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    if (po) {
-      setEditNotes((po as any).notes || '')
-      setEditTerms((po as any).terms || '')
+    if (!isOpen || !poId) return;
+    loadPO();
+  }, [isOpen, poId]);
+
+  const loadPO = async () => {
+    try {
+      setLoading(true);
+      const data = await purchaseOrdersApi.getById(poId) as any;
+      setPo(data);
+      setBepPoPdfUrl(data.bep_po_pdf_url || '');
+    } catch (err) {
+      showToast('error', 'Failed to load PO details');
+    } finally {
+      setLoading(false);
     }
-  }, [po])
+  };
 
-  // Initialize receive quantities when items load
-  useEffect(() => {
-    if ((po as any)?.purchase_order_items) {
-      const defaults: Record<number, number> = {};
-      ((po as any).purchase_order_items as any[]).forEach((item: any) => {
-        const remaining = item.quantity - (item.received_qty || 0);
-        defaults[item.id] = Math.max(0, remaining);
-      });
-      setReceiveQuantities(defaults);
+  const handleUpdatePdf = async () => {
+    try {
+      setIsUpdating(true);
+      await purchaseOrdersApi.updatePurchaseOrder(poId, { bep_po_pdf_url: bepPoPdfUrl });
+      showToast('success', 'PO document URL updated');
+      await loadPO();
+    } catch (err: any) {
+      showToast('error', 'Failed to update document URL');
+    } finally {
+      setIsUpdating(false);
     }
-  }, [(po as any)?.purchase_order_items])
+  };
 
-  const validTransitions = useMemo(() => {
-    if (!po) return []
-    // Define logic for valid status transitions if needed globally, otherwise use local mapping
-    const transitions: Record<string, POStatus[]> = {
-      'Pending':   ['Sent', 'Cancelled'],
-      'Sent':      ['Confirmed', 'Cancelled'],
-      'Confirmed': ['Partial', 'Received', 'Cancelled'],
-      'Partial':   ['Received', 'Cancelled'],
-    };
-    return transitions[(po as any).status] || []
-  }, [po])
-
-  // Status change mutation
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: POStatus }) =>
-      purchaseOrdersApi.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['project-pos'] })
-    },
-    onError: (err: any) => alert(err.message)
-  })
-
-  // Edit mutation
-  const editMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      purchaseOrdersApi.updatePurchaseOrder(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-      setIsEditing(false)
+  const handleReleasePO = async () => {
+    if (!bepPoPdfUrl) {
+      showToast('error', 'Please attach BEP PO PDF before releasing');
+      return;
     }
-  })
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => purchaseOrdersApi.deletePO(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['project-pos'] })
-      onClose()
+    try {
+      setIsUpdating(true);
+      await purchaseOrdersApi.releasePO(poId);
+      showToast('success', 'PO released successfully!');
+      await loadPO();
+      onStatusUpdated?.();
+    } catch (err: any) {
+      showToast('error', err.message);
+    } finally {
+      setIsUpdating(false);
     }
-  })
+  };
 
-  // Receive items mutation
-  const receiveMutation = useMutation({
-    mutationFn: () => {
-      const items = Object.entries(receiveQuantities)
-        .filter(([_, qty]) => qty > 0)
-        .map(([itemId, qty]) => ({
-          id: parseInt(itemId),
-          received_qty: qty
-        }))
-
-      if (items.length === 0) throw new Error('No items to receive')
-      return purchaseOrdersApi.receiveItems(poId!, items)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['parts'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      alert(`Items received successfully!`)
-      setActiveView('details')
-    },
-    onError: (err: any) => alert(`Receive failed: ${err.message}`)
-  })
-
-  // Delete item mutation
-  const deleteItemMutation = useMutation({
-    mutationFn: (itemId: number) => purchaseOrdersApi.deletePOItem(itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
+  const handleStatusUpdate = async (newStatus: any) => {
+    try {
+      setIsUpdating(true);
+      await purchaseOrdersApi.updateStatus(poId, newStatus);
+      showToast('success', `Status updated to ${newStatus}`);
+      await loadPO();
+      onStatusUpdated?.();
+    } catch (err: any) {
+      showToast('error', err.message);
+    } finally {
+      setIsUpdating(false);
     }
-  })
+  };
 
-  if (!isOpen || !poId) return null
+  const daysUntilDelivery = po?.expected_delivery_date
+    ? Math.ceil((new Date(po.expected_delivery_date).getTime() - Date.now()) / (1000 * 3600 * 24))
+    : null;
 
-  const handleSaveEdit = () => {
-    editMutation.mutate({
-      id: poId,
-      data: { notes: editNotes, terms: editTerms }
-    })
-  }
+  if (!isOpen) return null;
 
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this Purchase Order? This cannot be undone.')) {
-      deleteMutation.mutate(poId)
-    }
-  }
-
-  const handleDeleteItem = (itemId: number) => {
-    if (confirm('Remove this line item from the PO?')) {
-      deleteItemMutation.mutate(itemId)
-    }
-  }
-
-  const canReceive = (po as any)?.status === 'Confirmed' || (po as any)?.status === 'Partial'
-  const canEdit = (po as any)?.status === 'Pending' || (po as any)?.status === 'Sent'
-  const canDelete = (po as any)?.status === 'Pending' || (po as any)?.status === 'Cancelled'
+  const statusColors: Record<string, string> = {
+    Draft: 'bg-gray-100 text-gray-700 border-gray-200',
+    Released: 'bg-blue-100 text-blue-700 border-blue-200',
+    Sent: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    Confirmed: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    Partial: 'bg-amber-100 text-amber-700 border-amber-200',
+    Received: 'bg-green-100 text-green-700 border-green-200',
+    Cancelled: 'bg-red-100 text-red-700 border-red-200',
+  };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-
-        <div className="inline-block w-full max-w-4xl my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-2xl rounded-2xl">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-[2.5rem] max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div className="px-10 py-8 border-b flex items-center justify-between bg-gray-50/50">
+          <div>
+            <div className="flex items-center gap-4 mb-2">
+              <h1 className="text-3xl font-black tracking-tight text-gray-900 leading-none">PO #{po?.po_number}</h1>
+              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${statusColors[po?.status] || 'bg-gray-100'}`}>
+                {po?.status}
+              </span>
             </div>
-          ) : !po ? (
-            <div className="p-12 text-center text-gray-500">Purchase Order not found</div>
+            <div className="flex items-center gap-3 text-sm text-gray-500 font-medium">
+              <span className="flex items-center gap-1.5">
+                <Truck className="w-4 h-4" />
+                {po?.suppliers?.name}
+              </span>
+              <span className="text-gray-300">•</span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4" />
+                {new Date(po?.po_date).toLocaleDateString('en-IN')}
+              </span>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-4 hover:bg-white hover:shadow-xl rounded-2xl transition-all active:scale-95 group">
+            <X className="w-6 h-6 text-gray-400 group-hover:text-gray-900" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-10 custom-scrollbar">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-12 h-12 border-4 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Hydrating Details...</p>
+            </div>
           ) : (
-            <>
-              {/* Header */}
-              <div className="bg-gray-900 px-6 py-5 flex items-center justify-between text-white">
-                <div>
-                  <div className="flex items-center space-x-3">
-                    <h2 className="text-xl font-black tracking-tight">{(po as any).po_number}</h2>
-                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${STATUS_COLORS[(po as any).status]}`}>
-                      {(po as any).status}
-                    </span>
+            <div className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+                {/* Expected Delivery Card */}
+                {po?.expected_delivery_date && (
+                  <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-6 flex items-center gap-5">
+                    <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
+                      <Calendar className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-1">Expected Delivery</p>
+                      <p className="text-xl font-black text-blue-900">
+                        {new Date(po.expected_delivery_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                      {daysUntilDelivery !== null && (
+                        <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${daysUntilDelivery > 0 ? 'text-blue-600' : 'text-red-600 animate-pulse'}`}>
+                          {daysUntilDelivery > 0 
+                            ? `${daysUntilDelivery} days remaining` 
+                            : daysUntilDelivery === 0 ? 'Delivery Due Today' : 'Delivery Overdue'}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-gray-400 text-xs mt-1 font-medium">
-                    {(po as any).suppliers?.name} &middot; {new Date((po as any).created_date).toLocaleDateString()}
-                  </p>
+                )}
+
+                {/* Total Value Card */}
+                <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-6 flex items-center gap-5">
+                  <div className="bg-emerald-600 p-3 rounded-2xl text-white shadow-lg shadow-emerald-200">
+                    <IndianRupee className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1">Total PO Value</p>
+                    <p className="text-xl font-black text-emerald-900 tabular-nums">
+                      {po?.grand_total?.toLocaleString('en-IN', { style: 'currency', currency: po?.currency || 'INR' })}
+                    </p>
+                    <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Net Total + Taxes</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {canDelete && (
-                    <button
-                      onClick={handleDelete}
-                      disabled={deleteMutation.isPending}
-                      className="p-2 text-red-300 hover:text-red-100 hover:bg-red-900/50 rounded-lg transition-colors"
-                      title="Delete PO"
+              </div>
+
+              {/* Enhanced BEP PO PDF Control */}
+              <div className="bg-gray-50 border border-gray-100 rounded-[2rem] p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">PO Documentation</h3>
+                    <p className="text-xs text-gray-500 font-medium mt-1">Attach the authorized BEP PO document to enable release.</p>
+                  </div>
+                  {po?.bep_po_pdf_url && (
+                    <a 
+                      href={po.bep_po_pdf_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 underline underline-offset-4"
                     >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                      <ExternalLink className="w-3 h-3" />
+                      View current PDF
+                    </a>
                   )}
-                  <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                    <X className="h-5 w-5" />
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <FileText className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={bepPoPdfUrl}
+                      onChange={(e) => setBepPoPdfUrl(e.target.value)}
+                      placeholder="Enter BEP PO PDF URL (e.g., Supabase Storage link)"
+                      className="w-full bg-white border border-gray-200 rounded-2xl px-14 py-4 text-xs font-bold focus:ring-2 focus:ring-gray-900 outline-none transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUpdatePdf}
+                    disabled={isUpdating || bepPoPdfUrl === po?.bep_po_pdf_url}
+                    className="px-8 py-4 bg-white border border-gray-200 text-xs font-black rounded-2xl hover:bg-gray-50 disabled:opacity-50 transition-all uppercase tracking-widest"
+                  >
+                    Save URL
                   </button>
                 </div>
               </div>
 
-              {/* Status Actions Bar */}
-              {validTransitions.length > 0 && (
-                <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center space-x-3">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Change Status:</span>
-                  {validTransitions.map((status) => {
-                    const Icon = STATUS_ICONS[status] || ChevronRight
-                    return (
-                      <button
-                        key={status}
-                        onClick={() => statusMutation.mutate({ id: poId, status })}
-                        disabled={statusMutation.isPending}
-                        className={`inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg border transition-all hover:scale-105 active:scale-95 ${
-                          status === 'Cancelled'
-                            ? 'border-red-200 text-red-700 hover:bg-red-50'
-                            : 'border-primary-200 text-primary-700 hover:bg-primary-50'
-                        }`}
-                      >
-                        <Icon className="h-3.5 w-3.5 mr-1.5" />
-                        {status}
-                      </button>
-                    )
-                  })}
-                  {canReceive && (
+              {/* Status Workflow Action */}
+              {po?.status === 'Draft' && (
+                <div className="bg-gray-900 rounded-[2rem] p-10 text-center relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl group-hover:bg-white/10 transition-all duration-500"></div>
+                  <div className="relative z-10">
+                    <h2 className="text-xl font-black text-white tracking-tight mb-2">Ready to Release PO?</h2>
+                    <p className="text-sm text-gray-400 font-medium mb-10 max-w-md mx-auto">
+                      Releasing the PO locks the configuration and marks it as an official procurement request. PDF attachment is mandatory.
+                    </p>
                     <button
-                      onClick={() => setActiveView('receive')}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg border border-green-200 text-green-700 hover:bg-green-50 transition-all ml-auto"
+                      onClick={handleReleasePO}
+                      disabled={isUpdating || !bepPoPdfUrl}
+                      className="inline-flex items-center gap-3 px-10 py-5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-700 text-white text-xs font-black rounded-2xl transition-all shadow-xl shadow-emerald-500/20 active:scale-95 uppercase tracking-[0.2em] disabled:shadow-none"
                     >
-                      <TruckIcon className="h-3.5 w-3.5 mr-1.5" />
-                      Receive Items
+                      {isUpdating ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Upload className="w-5 h-5" />
+                      )}
+                      {bepPoPdfUrl ? 'Initiate PO Release' : 'Attach PDF to Release'}
                     </button>
-                  )}
+                  </div>
                 </div>
               )}
 
-              {/* Tab toggle */}
-              <div className="px-6 pt-4 flex space-x-1 border-b border-gray-100">
-                <button
-                  onClick={() => setActiveView('details')}
-                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-t-lg transition-colors ${
-                    activeView === 'details'
-                      ? 'bg-white border border-b-0 border-gray-200 text-gray-900'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  Details & Items
-                </button>
-                {canReceive && (
-                  <button
-                    onClick={() => setActiveView('receive')}
-                    className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-t-lg transition-colors ${
-                      activeView === 'receive'
-                        ? 'bg-white border border-b-0 border-gray-200 text-gray-900'
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    Receive Stock
-                  </button>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {activeView === 'details' ? (
-                  <div className="space-y-6">
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Project</p>
-                        <p className="text-sm font-bold text-gray-900 mt-1">{(po as any).project?.project_name}</p>
-                        <p className="text-[10px] text-gray-500 font-mono">{(po as any).project_number}</p>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grand Total</p>
-                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">{(po as any).currency} {(po as any).grand_total?.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Items</p>
-                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">{(po as any).purchase_order_items?.length || 0}</p>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Qty</p>
-                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">
-                          {(po as any).purchase_order_items?.reduce((acc: number, item: any) => acc + item.quantity, 0)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Notes / Terms (editable) */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Notes & Terms</h4>
-                        {canEdit && (
-                          <button
-                            onClick={() => isEditing ? handleSaveEdit() : setIsEditing(true)}
-                            disabled={editMutation.isPending}
-                            className="inline-flex items-center text-xs font-bold text-primary-600 hover:text-primary-700"
-                          >
-                            {isEditing ? (
-                              <><Save className="h-3.5 w-3.5 mr-1" /> Save</>
-                            ) : (
-                              <><Edit2 className="h-3.5 w-3.5 mr-1" /> Edit</>
-                            )}
-                          </button>
-                        )}
-                      </div>
-
-                      {isEditing ? (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Notes</label>
-                            <textarea
-                              rows={3}
-                              value={editNotes}
-                              onChange={(e) => setEditNotes(e.target.value)}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Terms</label>
-                            <textarea
-                              rows={3}
-                              value={editTerms}
-                              onChange={(e) => setEditTerms(e.target.value)}
-                              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100 italic">
-                            {(po as any).notes || 'No notes'}
-                          </div>
-                          <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-100 italic">
-                            {(po as any).terms || 'No terms specified'}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Line Items Table */}
-                    <div>
-                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Line Items</h4>
-                      <div className="border border-gray-200 rounded-xl overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Part</th>
-                              <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
-                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
-                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Recvd</th>
-                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Price</th>
-                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
-                              {canEdit && <th className="px-4 py-2.5 w-10"></th>}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {((po as any).purchase_order_items || []).map((item: any) => (
-                              <tr key={item.id} className="hover:bg-gray-50/50">
-                                <td className="px-4 py-3 text-sm font-bold text-gray-900 font-mono">{item.part_number}</td>
-                                <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{item.description || '-'}</td>
-                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">{item.quantity}</td>
-                                <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right tabular-nums">{item.received_qty || 0}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-right tabular-nums">{item.unit_price?.toFixed(2)}</td>
-                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">
-                                  {(item.unit_price * item.quantity * (1 - (item.discount_percent || 0) / 100)).toFixed(2)}
-                                </td>
-                                {canEdit && (
-                                  <td className="px-4 py-3 text-right">
-                                    <button
-                                      onClick={() => handleDeleteItem(item.id)}
-                                      className="text-red-400 hover:text-red-600 transition-colors"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  </td>
-                                )}
-                              </tr>
-                            ))}
-                          </tbody>
-                          <tfoot className="bg-gray-50">
-                            <tr>
-                              <td colSpan={5} className="px-4 py-3 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Grand Total</td>
-                              <td className="px-4 py-3 text-right text-sm font-black text-gray-900 tabular-nums">{(po as any).currency} {(po as any).grand_total?.toFixed(2)}</td>
-                              {canEdit && <td></td>}
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* Receive Items View */
-                  <div className="space-y-6">
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start space-x-3">
-                      <TruckIcon className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-bold text-green-800">Receive Items into Stock</h4>
-                        <p className="text-xs text-green-700 mt-1">
-                          Enter the quantity received for each item. Stock and Audit Trails will be updated automatically.
-                          If all items are fully received, PO status will be updated accordingly.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border border-gray-200 rounded-xl overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase">Part Number</th>
-                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase">Ordered</th>
-                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase">Already Recvd</th>
-                            <th className="px-4 py-2.5 text-center text-[10px] font-black text-gray-400 uppercase">Receive Now</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {((po as any).purchase_order_items || []).map((item: any) => {
-                             const remaining = item.quantity - (item.received_qty || 0);
-                             return (
-                              <tr key={item.id} className="hover:bg-gray-50/50">
-                                <td className="px-4 py-3 text-sm font-bold text-gray-900 font-mono">{item.part_number}</td>
-                                <td className="px-4 py-3 text-sm font-bold text-gray-400 text-right tabular-nums">{item.quantity}</td>
-                                <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right tabular-nums">{item.received_qty || 0}</td>
-                                <td className="px-4 py-3 text-center">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max={remaining}
-                                    value={receiveQuantities[item.id] ?? remaining}
-                                    onChange={(e) => setReceiveQuantities(prev => ({
-                                      ...prev,
-                                      [item.id]: parseInt(e.target.value) || 0
-                                    }))}
-                                    className="w-24 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-bold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                                  />
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="flex justify-end space-x-3">
-                      <button
-                        onClick={() => setActiveView('details')}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              {/* Quick Status Transitions (Released/Sent states) */}
+              {['Released', 'Sent', 'Confirmed', 'Partial'].includes(po?.status) && (
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Procurement Workflow</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {po.status === 'Released' && (
+                      <button 
+                        onClick={() => handleStatusUpdate('Sent')}
+                        className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black rounded-xl hover:bg-indigo-700 transition-all uppercase tracking-widest"
                       >
-                        Cancel
+                        Mark as Sent to Supplier
                       </button>
-                      <button
-                        onClick={() => receiveMutation.mutate()}
-                        disabled={receiveMutation.isPending}
-                        className="inline-flex items-center px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-lg shadow-green-200 transition-all disabled:opacity-50"
+                    )}
+                    {(po.status === 'Sent' || po.status === 'Released') && (
+                      <button 
+                        onClick={() => handleStatusUpdate('Confirmed')}
+                        className="px-6 py-3 bg-emerald-600 text-white text-[10px] font-black rounded-xl hover:bg-emerald-700 transition-all uppercase tracking-widest"
                       >
-                        <PackageCheck className="h-4 w-4 mr-2" />
-                        {receiveMutation.isPending ? 'Processing...' : 'Confirm Receipt'}
+                        Confirm Receipt by Supplier
                       </button>
-                    </div>
+                    )}
+                    {po.status !== 'Received' && po.status !== 'Cancelled' && (
+                      <button 
+                        onClick={() => handleStatusUpdate('Cancelled')}
+                        className="px-6 py-3 bg-white border border-red-200 text-red-600 text-[10px] font-black rounded-xl hover:bg-red-50 transition-all uppercase tracking-widest"
+                      >
+                        Cancel Purchase Order
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Line Items Table */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">PO Line Items</h3>
+                <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Part Detail</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Ordered</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Received</th>
+                        <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {po?.purchase_order_items?.map((item: any) => (
+                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-6 py-5">
+                            <p className="text-sm font-black text-gray-900 tracking-tight">{item.part_number}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[200px]">{item.description}</p>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <span className="text-sm font-black text-gray-600 tabular-nums">{item.quantity}</span>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <span className={`text-sm font-black tabular-nums ${item.received_qty > 0 ? (item.received_qty >= item.quantity ? 'text-green-600' : 'text-amber-600') : 'text-gray-300'}`}>
+                              {item.received_qty || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                             <p className="text-sm font-black text-gray-900 tabular-nums">
+                               {item.total_amount?.toLocaleString('en-IN', { style: 'currency', currency: po?.currency || 'INR' })}
+                             </p>
+                             <p className="text-[10px] text-gray-400 font-bold uppercase tabular-nums">@{item.unit_price}</p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </>
+            </div>
           )}
+        </div>
+
+        <div className="px-10 py-6 border-t flex justify-between items-center bg-gray-50/50">
+          <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
+            Last Updated: {po?.updated_date ? new Date(po.updated_date).toLocaleString() : 'N/A'}
+          </p>
+          <button 
+            onClick={onClose} 
+            className="px-10 py-3 bg-gray-900 text-white text-xs font-black rounded-2xl hover:bg-gray-800 shadow-xl shadow-gray-200 transition-all active:scale-95 uppercase tracking-[0.2em]"
+          >
+            Acknowledge & Close
+          </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-export default PODetailModal
