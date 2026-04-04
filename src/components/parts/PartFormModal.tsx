@@ -107,12 +107,39 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     }
   })
 
+  const cleanPayload = (data: any) => {
+    const cleaned = { ...data }
+    
+    // Fields only for mechanical categories
+    if (!activeTab.includes('mechanical')) {
+      delete cleaned.material
+      delete cleaned.finish
+      delete cleaned.weight
+      delete cleaned.pdm_file_path
+    }
+
+    // Fields only for pneumatic categories
+    if (!activeTab.includes('pneumatic')) {
+      delete cleaned.port_size
+      delete cleaned.operating_pressure
+    }
+
+    // Remove empty strings for fields that migrate to null
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === '') cleaned[key] = null
+    })
+
+    return cleaned
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const payload = cleanPayload(formData)
+    
     if (partToEdit) {
-      updateMutation.mutate(formData)
+      updateMutation.mutate(payload)
     } else {
-      createMutation.mutate(formData)
+      createMutation.mutate(payload)
     }
   }
 
