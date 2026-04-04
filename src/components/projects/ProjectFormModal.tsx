@@ -59,8 +59,8 @@ const ProjectFormModal = ({ isOpen, onClose, projectToEdit }: ProjectFormModalPr
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['recent-projects'] })
       onClose()
-      if (data?.id) {
-        navigate(`/projects/${data.id}`)
+      if ((data as any)?.id) {
+        navigate(`/projects/${(data as any).id}`)
       }
     }
   })

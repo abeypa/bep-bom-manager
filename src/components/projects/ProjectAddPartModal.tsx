@@ -53,7 +53,7 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
   useEffect(() => {
     if (selectedPartStr && allPartsData) {
       const [catStr, idStr] = selectedPartStr.split('::')
-      const catParts = allPartsData.find(d => d.category === catStr)?.parts || []
+      const catParts = (allPartsData.find(d => d.category === catStr)?.parts as any[]) || []
       const part = catParts.find((p: any) => p.id === parseInt(idStr))
       
       if (part) {

@@ -5,10 +5,13 @@ import { useStorage } from '@/hooks/useStorage';
 import type { FileCategory } from '@/types/storage';
 
 interface FileUploadProps {
-  partType: string;
-  partId: number;
-  category: FileCategory;
+  partType?: string;
+  partId?: number;
+  category?: FileCategory;
   onUploadComplete?: (filePath: string) => void;
+  onUpload?: (filePath: string) => void;
+  existingUrl?: string | null;
+  bucket?: string;
   label?: string;
 }
 
@@ -17,6 +20,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   partId,
   category,
   onUploadComplete,
+  onUpload,
   label = 'Upload File',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +31,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     onUploadComplete: (result) => {
       if (result.success && result.filePath) {
         onUploadComplete?.(result.filePath);
+        onUpload?.(result.filePath);
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -52,7 +57,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       return;
     }
 
-    await storage.upload(selectedFile, partType, partId, category);
+    await storage.upload(selectedFile, partType || 'unknown', partId || 0, category || 'documentation' as FileCategory);
   };
 
   const handleCancel = () => {

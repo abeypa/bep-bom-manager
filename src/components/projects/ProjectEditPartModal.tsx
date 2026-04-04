@@ -51,10 +51,11 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
         currency_at_assignment: formData.currency,
         discount_percent_at_assignment: formData.discount_percent,
         reference_designator: formData.reference_designator || null,
-        notes: formData.notes || null
+        notes: formData.notes || null,
+        update_master: formData.update_master
       }
 
-      await projectsApi.updatePartInSection(projectPart.id, payload, formData.update_master)
+      await projectsApi.updatePartInSection(projectPart.id, payload)
       
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })

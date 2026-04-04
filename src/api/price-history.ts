@@ -52,7 +52,7 @@ export const priceHistoryApi = {
     new_discount_percent?: number | null;
     change_reason?: string;
   }) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('part_price_history')
       .insert([
         {

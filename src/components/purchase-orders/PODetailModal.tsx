@@ -11,6 +11,7 @@ interface PODetailModalProps {
   isOpen: boolean
   onClose: () => void
   poId: number | null
+  onStatusUpdated?: () => void
 }
 
 const STATUS_ICONS: Record<string, any> = {
@@ -55,12 +56,12 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
   // Initialize receive quantities when items load
   useEffect(() => {
     if ((po as any)?.purchase_order_items) {
-      const defaults: Record<number, number> = {}
+      const defaults: Record<number, number> = {};
       ((po as any).purchase_order_items as any[]).forEach((item: any) => {
         const remaining = item.quantity - (item.received_qty || 0);
         defaults[item.id] = Math.max(0, remaining);
-      })
-      setReceiveQuantities(defaults)
+      });
+      setReceiveQuantities(defaults);
     }
   }, [(po as any)?.purchase_order_items])
 

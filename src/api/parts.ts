@@ -48,7 +48,7 @@ const logPriceHistory = async (
 export const partsApi = {
   // Get parts by category
   getPartsByCategory: async (category: PartCategory) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from(category)
       .select(`
         *,
@@ -191,11 +191,11 @@ export const partsApi = {
 
         if (existing) {
           partsUpdated++
-          await logPriceHistory(category, existing.id, part.PartNumber, existing, result, 'json_import');
+          await logPriceHistory(category, (existing as any).id, part.PartNumber, existing, result, 'json_import');
         } else {
           partsAdded++
           if (result) {
-            await logPriceHistory(category, result.id, part.PartNumber, null, result, 'json_import');
+            await logPriceHistory(category, (result as any).id, part.PartNumber, null, result, 'json_import');
           }
         }
       } catch (err: any) {

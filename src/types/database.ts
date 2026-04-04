@@ -3,6 +3,30 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string;                    // UUID from auth.users
+          role: 'admin' | 'user';
+          full_name: string | null;
+          created_date: string;
+          updated_date: string | null;
+        };
+        Insert: {
+          id: string;
+          role?: 'admin' | 'user';
+          full_name?: string | null;
+          created_date?: string;
+          updated_date?: string | null;
+        };
+        Update: {
+          id?: string;
+          role?: 'admin' | 'user';
+          full_name?: string | null;
+          created_date?: string;
+          updated_date?: string | null;
+        };
+      };
+      
       part_price_history: {
         Row: {
           id: number;

@@ -154,7 +154,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     }))
   }
 
-  const handleFileUpload = (key: string, url: string) => {
+  const handleFileUpload = (key: string, url: any) => {
     setFormData((prev: any) => ({ ...prev, [key]: url }))
   }
 
@@ -330,7 +330,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   </div>
                   <FileUpload
                     existingUrl={formData.image_path}
-                    onUpload={(url) => handleFileUpload('image_path', url)}
+                    onUpload={(url: string) => handleFileUpload('image_path', url)}
                     bucket="part-images"
                     label="Image"
                   />
@@ -343,7 +343,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   </div>
                   <FileUpload
                     existingUrl={formData.cad_file_url}
-                    onUpload={(url) => handleFileUpload('cad_file_url', url)}
+                    onUpload={(url: string) => handleFileUpload('cad_file_url', url)}
                     bucket="cad-files"
                     label="Model"
                   />
@@ -356,7 +356,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   </div>
                   <FileUpload
                     existingUrl={formData.pdf_path}
-                    onUpload={(url) => handleFileUpload('pdf_path', url)}
+                    onUpload={(url: string) => handleFileUpload('pdf_path', url)}
                     bucket="pdf-files"
                     label="Datasheet"
                   />
@@ -369,7 +369,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   </div>
                   <FileUpload
                     existingUrl={formData.pdf2_path}
-                    onUpload={(url) => handleFileUpload('pdf2_path', url)}
+                    onUpload={(url: string) => handleFileUpload('pdf2_path', url)}
                     bucket="pdf-files"
                     label="Certificates"
                   />
@@ -382,7 +382,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   </div>
                   <FileUpload
                     existingUrl={formData.pdf3_path}
-                    onUpload={(url) => handleFileUpload('pdf3_path', url)}
+                    onUpload={(url: any) => handleFileUpload('pdf3_path', url)}
                     bucket="pdf-files"
                     label="Drawings"
                   />

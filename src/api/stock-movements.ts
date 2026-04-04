@@ -90,7 +90,7 @@ export const stockMovementsApi = {
     reference_notes?: string;
     unit_price_at_movement?: number;
   }) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('stock_movements')
       .insert([
         {

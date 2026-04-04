@@ -41,7 +41,7 @@ const logStockMovement = async (
 
 export const projectsApi = {
   getProjects: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('projects')
       .select('*')
       .order('created_date', { ascending: false });
@@ -50,7 +50,7 @@ export const projectsApi = {
   },
 
   getProject: async (projectId: number) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('projects')
       .select(`
         *,
@@ -74,7 +74,7 @@ export const projectsApi = {
   },
 
   createProject: async (project: ProjectInsert) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('projects')
       .insert([project])
       .select()
@@ -84,7 +84,7 @@ export const projectsApi = {
   },
 
   updateProject: async (id: number, project: ProjectUpdate) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('projects')
       .update(project)
       .eq('id', id)
@@ -95,7 +95,7 @@ export const projectsApi = {
   },
 
   deleteProject: async (id: number) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('projects')
       .delete()
       .eq('id', id)
@@ -103,7 +103,7 @@ export const projectsApi = {
   },
 
   getSections: async (projectId: number) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('project_sections')
       .select('*')
       .eq('project_id', projectId)
@@ -113,7 +113,7 @@ export const projectsApi = {
   },
 
   createSection: async (section: ProjectSectionInsert) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('project_sections')
       .insert([section])
       .select()
@@ -123,7 +123,7 @@ export const projectsApi = {
   },
 
   updateSection: async (id: number, section: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('project_sections')
       .update(section)
       .eq('id', id)
@@ -134,7 +134,7 @@ export const projectsApi = {
   },
 
   deleteSection: async (id: number) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('project_sections')
       .delete()
       .eq('id', id)
@@ -198,7 +198,7 @@ export const projectsApi = {
 
     // 4. Check for existing part in project
     const partTypeKey = `${partTableValue}${partTableValue.includes('bought_out') && !partTableValue.includes('_part') ? '_part' : ''}_id`;
-    const { data: existingPart } = await supabase
+      const { data: existingPart } = await (supabase as any)
       .from('project_parts')
       .select('*')
       .eq('project_section_id', project_section_id)
@@ -211,7 +211,7 @@ export const projectsApi = {
     let result;
     if (existingPart) {
       // Update existing
-      const { data: updated, error: upError } = await supabase
+      const { data: updated, error: upError } = await (supabase as any)
         .from('project_parts')
         .update({
           quantity: (existingPart as any).quantity + quantity,
@@ -240,7 +240,7 @@ export const projectsApi = {
         use_date_time: new Date().toISOString()
       };
 
-      const { data: inserted, error: inError } = await supabase
+      const { data: inserted, error: inError } = await (supabase as any)
         .from('project_parts')
         .insert([insertPayload])
         .select()
@@ -265,7 +265,7 @@ export const projectsApi = {
 
   // === Remove part from section + restore stock ===
   removePartFromSection: async (id: number) => {
-    const { data: link, error: linkErr } = await supabase
+    const { data: link, error: linkErr } = await (supabase as any)
       .from('project_parts')
       .select(`
         *,
@@ -331,7 +331,7 @@ export const projectsApi = {
        // For now, updating the record
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('project_parts')
       .update({
         quantity: payload.quantity,
