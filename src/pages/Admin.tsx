@@ -172,14 +172,26 @@ export default function Admin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [profilesData, statsData] = await Promise.all([
-        adminApi.getProfiles(),
-        adminApi.getSystemStats()
-      ]);
+      console.log('[Admin] Current User:', currentUser?.email);
+      
+      // Fetch separately to catch exactly which one fails
+      const profilesData = await adminApi.getProfiles().catch(err => {
+        console.error('[Admin] Profiles Error:', err);
+        showToast('error', `Profiles Error: ${err.message || 'Unknown error'}`);
+        return [];
+      });
+      
+      const statsData = await adminApi.getSystemStats().catch(err => {
+        console.error('[Admin] Stats Error:', err);
+        showToast('error', `System Stats Error: ${err.message || 'Unknown error'}`);
+        return { projects: 0, parts: 0, users: 0 };
+      });
+
       setProfiles(profilesData);
       setStats(statsData);
-    } catch (err) {
-      showToast('error', 'Failed to load administrative data');
+    } catch (err: any) {
+      console.error('[Admin] General Error:', err);
+      showToast('error', `Failed to load administrative data: ${err.message || 'Unknown'}`);
     } finally {
       setLoading(false);
     }
