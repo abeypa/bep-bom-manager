@@ -1,5 +1,5 @@
-import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   FolderTree, 
@@ -16,10 +16,22 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AppLayout() {
   const { isAdmin, loading } = useRole();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   if (loading) {
