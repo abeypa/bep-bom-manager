@@ -95,9 +95,9 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
         project_section_id: sectionId,
         quantity,
         // Snapshot fields (Price Drift Protection)
-        base_price_at_assignment: unitPrice,
-        currency_at_assignment: currency,
-        discount_percent_at_assignment: discountPercent,
+        unit_price: unitPrice,
+        currency: currency,
+        discount_percent: discountPercent,
         supplier_name_at_assignment: selectedPartData.suppliers?.name || 'Manual',
         
         // Metadata
