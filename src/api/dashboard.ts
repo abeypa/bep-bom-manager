@@ -40,13 +40,13 @@ export const dashboardApi = {
         { count: totalProjects },
         { count: pendingPOs },
       ] = await Promise.all([
-        supabase.from('mechanical_manufacture').select('*', { count: 'exact', head: true }),
-        supabase.from('mechanical_bought_out').select('*', { count: 'exact', head: true }),
-        supabase.from('electrical_manufacture').select('*', { count: 'exact', head: true }),
-        supabase.from('electrical_bought_out').select('*', { count: 'exact', head: true }),
-        supabase.from('pneumatic_bought_out').select('*', { count: 'exact', head: true }),
-        supabase.from('projects').select('*', { count: 'exact', head: true }),
-        supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+        (supabase as any).from('mechanical_manufacture').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('mechanical_bought_out').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('electrical_manufacture').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('electrical_bought_out').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('pneumatic_bought_out').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('projects').select('*', { count: 'exact', head: true }),
+        (supabase as any).from('purchase_orders').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
       ]);
 
       return {

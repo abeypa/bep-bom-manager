@@ -26,7 +26,7 @@ const logStockMovement = async (
   stockAfter: number,
   extra: any = {}
 ) => {
-  await supabase.from('stock_movements').insert({
+  await (supabase as any).from('stock_movements').insert({
     movement_type: movementType,
     part_table_name: partTable,
     part_id: partId,
@@ -186,8 +186,8 @@ export const projectsApi = {
 
     // 2. Get current part data and Project name
     const [{ data: part }, { data: section }] = await Promise.all([
-      supabase.from(partTableValue).select('stock_quantity, base_price, part_number, supplier_id, suppliers:supplier_id(name), discount_percent').eq('id', partIdValue).single(),
-      supabase.from('project_sections').select('*, project:projects(id, project_name)').eq('id', project_section_id).single()
+      (supabase as any).from(partTableValue).select('stock_quantity, base_price, part_number, supplier_id, suppliers:supplier_id(name), discount_percent').eq('id', partIdValue).single(),
+      (supabase as any).from('project_sections').select('*, project:projects(id, project_name)').eq('id', project_section_id).single()
     ]);
 
     if (!part) throw new Error('Part not found');
@@ -257,7 +257,7 @@ export const projectsApi = {
 
     // 6. Update master stock and log movement
     await Promise.all([
-      supabase.from(partTableValue).update({ stock_quantity: newStock }).eq('id', partIdValue),
+      (supabase as any).from(partTableValue).update({ stock_quantity: newStock }).eq('id', partIdValue),
       logStockMovement('OUT', partTableValue, partIdValue, part.part_number, quantity, stockBefore, newStock, { 
         project_id: project.id,
         project_name: project.project_name,
@@ -306,7 +306,7 @@ export const projectsApi = {
 
     if (!partTable || !partId) throw new Error('Underlying part not identified');
 
-    const { data: part } = await supabase.from(partTable).select('stock_quantity, part_number').eq('id', partId).single();
+    const { data: part } = await (supabase as any).from(partTable).select('stock_quantity, part_number').eq('id', partId).single();
     if (!part) throw new Error('Master part not found');
 
     const stockBefore = part.stock_quantity;
@@ -314,18 +314,18 @@ export const projectsApi = {
 
     // Execute Restoration
     await Promise.all([
-      supabase.from(partTable).update({ stock_quantity: newStock }).eq('id', partId),
+      (supabase as any).from(partTable).update({ stock_quantity: newStock }).eq('id', partId),
       logStockMovement('RESTORE', partTable, partId, part.part_number, link.quantity, stockBefore, newStock, {
         project_id: (link as any).section?.project?.id,
         project_name: (link as any).section?.project?.project_name
       }),
-      supabase.from('project_parts').delete().eq('id', id)
+      (supabase as any).from('project_parts').delete().eq('id', id)
     ]);
   },
 
   // Update part in section
   updatePartInSection: async (id: number, payload: any) => {
-    const { data: oldLink } = await supabase.from('project_parts').select('*').eq('id', id).single();
+    const { data: oldLink } = await (supabase as any).from('project_parts').select('*').eq('id', id).single();
     if (!oldLink) throw new Error('Part record not found');
 
     const diff = (payload.quantity || oldLink.quantity) - oldLink.quantity;

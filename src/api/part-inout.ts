@@ -28,7 +28,7 @@ export const partInOutApi = {
     if (quantity <= 0) throw new Error('Quantity must be greater than 0')
 
     // 1. Get current master part
-    const { data: part, error: fetchErr } = await (supabase.from(part_type) as any)
+    const { data: part, error: fetchErr } = await ((supabase as any).from(part_type) as any)
       .select('id, part_number, stock_quantity, received_qty')
       .eq('id', part_id)
       .single()
@@ -37,7 +37,7 @@ export const partInOutApi = {
     if (!part) throw new Error('Part not found')
 
     // 2. Update stock
-    const { error: updateErr } = await (supabase.from(part_type) as any)
+    const { error: updateErr } = await ((supabase as any).from(part_type) as any)
       .update({
         stock_quantity: (part.stock_quantity || 0) + quantity,
         received_qty: (part.received_qty || 0) + quantity,
@@ -49,7 +49,7 @@ export const partInOutApi = {
 
     // 3. Log in part_usage_logs with negative quantity convention (positive = in)
     // Or we use a dedicated approach: store with a marker in site_name
-    const { error: logErr } = await (supabase.from('part_usage_logs') as any)
+    const { error: logErr } = await ((supabase as any).from('part_usage_logs') as any)
       .insert([{
         project_name: `STOCK-IN: ${supplier_name}`,
         site_name: po_number ? `PO: ${po_number}` : 'Manual Receipt',
@@ -146,7 +146,7 @@ export const partInOutApi = {
     const results: any[] = []
 
     for (const cat of categories) {
-      const { data } = await (supabase.from(cat) as any)
+      const { data } = await ((supabase as any).from(cat) as any)
         .select('id, part_number, description, stock_quantity, supplier_id, suppliers:supplier_id(name)')
         .order('part_number', { ascending: true })
 

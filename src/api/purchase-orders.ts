@@ -72,7 +72,7 @@ export const purchaseOrdersApi = {
 
   // Create new PO
   create: async (poData: PurchaseOrderInsert) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('purchase_orders')
       .insert([poData])
       .select()
@@ -83,7 +83,7 @@ export const purchaseOrdersApi = {
 
   // Create with Items
   createPurchaseOrderWithItems: async (po: PurchaseOrderInsert, items: any[]) => {
-    const { data: newPO, error: poError } = await (supabase.from('purchase_orders') as any)
+    const { data: newPO, error: poError } = await (supabase as any).from('purchase_orders')
       .insert([po])
       .select()
       .single();
@@ -95,11 +95,11 @@ export const purchaseOrdersApi = {
       purchase_order_id: newPO.id
     }));
 
-    const { error: itemsError } = await (supabase.from('purchase_order_items') as any)
+    const { error: itemsError } = await ((supabase as any).from('purchase_order_items') as any)
       .insert(itemsWithPOId);
 
     if (itemsError) {
-      await supabase.from('purchase_orders').delete().eq('id', newPO.id);
+      await (supabase as any).from('purchase_orders').delete().eq('id', newPO.id);
       throw itemsError;
     }
 
@@ -126,7 +126,7 @@ export const purchaseOrdersApi = {
       throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('purchase_orders')
       .update({ status: newStatus, updated_date: new Date().toISOString() })
       .eq('id', poId)
@@ -160,7 +160,7 @@ export const purchaseOrdersApi = {
       if (!partTableName || !partId) continue;
 
       // 1. Get current master stock
-      const { data: part } = await supabase
+      const { data: part } = await (supabase as any)
         .from(partTableName)
         .select('stock_quantity, part_number')
         .eq('id', partId)
@@ -173,13 +173,13 @@ export const purchaseOrdersApi = {
 
       // 2. Update master stock and log movement
       await Promise.all([
-        supabase.from(partTableName).update({ 
+        (supabase as any).from(partTableName).update({ 
           stock_quantity: newStock,
           received_qty: ((part as any).received_qty || 0) + itemRequest.received_qty,
           updated_date: new Date().toISOString()
         }).eq('id', partId),
         
-        supabase.from('stock_movements').insert({
+        (supabase as any).from('stock_movements').insert({
           movement_type: 'IN',
           part_table_name: partTableName,
           part_id: partId,
@@ -193,7 +193,7 @@ export const purchaseOrdersApi = {
       ]);
 
       // 3. Update received qty in PO item
-      await supabase
+      await (supabase as any)
         .from('purchase_order_items')
         .update({ 
           received_qty: ((poItem as any).received_qty || 0) + itemRequest.received_qty 
@@ -216,7 +216,7 @@ export const purchaseOrdersApi = {
       throw new Error('Only Pending or Cancelled POs can be deleted');
     }
 
-    const { error } = await supabase.from('purchase_orders').delete().eq('id', poId);
+    const { error } = await (supabase as any).from('purchase_orders').delete().eq('id', poId);
     if (error) throw error;
   },
 

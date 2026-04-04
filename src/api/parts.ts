@@ -29,7 +29,7 @@ const logPriceHistory = async (
     oldCurrency !== newCurrency ||
     oldDiscount !== newDiscount
   ) {
-    await supabase.from('part_price_history').insert({
+    await (supabase as any).from('part_price_history').insert({
       part_table_name: partTable,
       part_id: partId,
       part_number: partNumber,
@@ -230,7 +230,7 @@ export const partsApi = {
   },
 
   deletePart: async (category: PartCategory, id: number) => {
-    const { error } = await supabase.from(category).delete().eq('id', id);
+    const { error } = await (supabase as any).from(category).delete().eq('id', id);
     if (error) throw error;
   },
 };

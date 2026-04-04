@@ -34,7 +34,7 @@ export interface Database {
           changed_by?: string | null;
           changed_at?: string;
         };
-        Update: Partial<part_price_history['Row']>;
+        Update: Partial<Database['public']['Tables']['part_price_history']['Row']>;
       };
 
       stock_movements: {
@@ -84,7 +84,7 @@ export interface Database {
           moved_at?: string;
           created_date?: string;
         };
-        Update: Partial<stock_movements['Row']>;
+        Update: Partial<Database['public']['Tables']['stock_movements']['Row']>;
       };
 
       project_parts: {
@@ -130,7 +130,7 @@ export interface Database {
           created_date?: string;
           updated_date?: string | null;
         };
-        Update: Partial<project_parts['Row']>;
+        Update: Partial<Database['public']['Tables']['project_parts']['Row']>;
       };
 
       suppliers: {
