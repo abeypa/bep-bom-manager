@@ -68,7 +68,7 @@ export const partsApi = {
 
   // Create a new part
   createPart: async (category: PartCategory, payload: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from(category)
       .insert([payload])
       .select()
@@ -87,14 +87,14 @@ export const partsApi = {
   // Updated: now logs price history automatically
   updatePart: async (category: PartCategory, id: number, updates: any) => {
     // 1. Fetch current values for comparison
-    const { data: current } = await supabase
+    const { data: current } = await (supabase as any)
       .from(category)
       .select('base_price, currency, discount_percent, part_number')
       .eq('id', id)
       .single();
 
     // 2. Perform the update
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await (supabase as any)
       .from(category)
       .update(updates)
       .eq('id', id)

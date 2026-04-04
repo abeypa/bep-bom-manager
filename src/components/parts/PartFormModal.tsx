@@ -88,6 +88,10 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts', activeTab] })
       onClose()
+    },
+    onError: (error: any) => {
+      alert(`Error creating part: ${error.message || 'Unknown error'}`)
+      console.error('Create Part Error:', error)
     }
   })
 
@@ -96,6 +100,10 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parts', activeTab] })
       onClose()
+    },
+    onError: (error: any) => {
+      alert(`Error updating part: ${error.message || 'Unknown error'}`)
+      console.error('Update Part Error:', error)
     }
   })
 
