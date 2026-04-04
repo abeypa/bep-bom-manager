@@ -51,13 +51,16 @@ export const priceHistoryApi = {
     old_discount_percent?: number | null;
     new_discount_percent?: number | null;
     change_reason?: string;
+    changed_at?: string; // Optional custom date
   }) => {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await (supabase as any)
       .from('part_price_history')
       .insert([
         {
           ...entry,
-          changed_by: (await supabase.auth.getUser()).data.user?.email || 'system',
+          changed_by: user?.email || 'system',
+          changed_at: entry.changed_at || new Date().toISOString(),
         },
       ])
       .select()

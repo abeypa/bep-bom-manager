@@ -22,6 +22,12 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [stockHistory, setStockHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isAddingPrice, setIsAddingPrice] = useState(false);
+  const [newPriceData, setNewPriceData] = useState({
+    price: '',
+    date: new Date().toISOString().split('T')[0],
+    reason: 'Manual Audit'
+  });
 
   const handleDecommission = async () => {
     if (!window.confirm(`CRITICAL ACTION: Are you sure you want to decommission ${part.part_number}? This will permanently remove it from the master registry.`)) return;
@@ -56,6 +62,38 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
     };
     loadData();
   }, [isOpen, part, category]);
+
+  const handleAddPriceEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin) return;
+
+    try {
+      setLoading(true);
+      await priceHistoryApi.addEntry({
+        part_table_name: category,
+        part_id: part.id,
+        part_number: part.part_number,
+        new_price: parseFloat(newPriceData.price),
+        change_reason: newPriceData.reason,
+        changed_at: new Date(newPriceData.date).toISOString()
+      });
+
+      // Reload history
+      const historyData = await priceHistoryApi.getHistory(category, part.id);
+      setPriceHistory(historyData);
+      setIsAddingPrice(false);
+      setNewPriceData({
+        price: '',
+        date: new Date().toISOString().split('T')[0],
+        reason: 'Manual Audit'
+      });
+      showToast('success', 'Historical entry recorded');
+    } catch (err) {
+      showToast('error', 'Failed to record entry');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen || !part) return null;
 
@@ -219,8 +257,68 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
                         <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
                         <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Price Evolution Timeline</h4>
                     </div>
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">{priceHistory.length} Recorded Changes</span>
+                    <div className="flex items-center gap-4">
+                      {isAdmin && !isAddingPrice && (
+                        <button 
+                          onClick={() => setIsAddingPrice(true)}
+                          className="px-4 py-2 bg-gray-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                        >
+                          Log Manual Entry
+                        </button>
+                      )}
+                      <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">{priceHistory.length} Recorded Changes</span>
+                    </div>
                   </div>
+
+                  {isAddingPrice && (
+                    <form onSubmit={handleAddPriceEntry} className="p-8 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 animate-in fade-in slide-in-from-top-4 duration-300">
+                      <div className="flex items-center justify-between mb-6">
+                        <h5 className="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                          <History className="w-4 h-4 text-emerald-500" />
+                          Record Historical Valuation
+                        </h5>
+                        <button 
+                          type="button"
+                          onClick={() => setIsAddingPrice(false)}
+                          className="text-[8px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-900"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest block px-1">Valuation (₹)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            required
+                            value={newPriceData.price}
+                            onChange={(e) => setNewPriceData({...newPriceData, price: e.target.value})}
+                            placeholder="0.0"
+                            className="w-full px-5 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest block px-1">Timeline Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={newPriceData.date}
+                            onChange={(e) => setNewPriceData({...newPriceData, date: e.target.value})}
+                            className="w-full px-5 py-3 bg-white border border-gray-100 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 outline-none"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button 
+                            type="submit"
+                            className="w-full py-3 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20"
+                          >
+                            Commit to Ledger
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  )}
                   
                   <div className="border border-gray-50 rounded-[2.5rem] overflow-hidden shadow-sm shadow-gray-50">
                     <table className="w-full">
