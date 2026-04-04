@@ -98,12 +98,12 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
         unit_price: unitPrice,
         currency: currency,
         discount_percent: discountPercent,
+        base_price_at_assignment: unitPrice,
         supplier_name_at_assignment: selectedPartData.suppliers?.name || 'Manual',
         
         // Metadata
         reference_designator: referenceDesignator || null,
-        notes: notes || null,
-        site_name: siteName
+        notes: notes || null
       }
 
       // Individual Foreign Key assignment
