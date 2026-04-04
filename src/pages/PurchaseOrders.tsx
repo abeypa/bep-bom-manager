@@ -33,12 +33,42 @@ export default function PurchaseOrders() {
     po.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleExportPO = (po: any) => {
+  const handleExportPO = async (po: any) => {
     try {
-      exportUtils.exportPOToTXT(po);
-      showToast('success', `PO ${po.po_number} exported successfully!`);
+      // 1. Fetch full PO with line items (not included in the main list query)
+      const fullPO = await purchaseOrdersApi.getById(po.id) as any;
+      
+      if (!fullPO) {
+        showToast('error', 'Could not find PO details in system');
+        return;
+      }
+
+      // 2. Map snapshot data to common terms if needed
+      // (The export utility expects items to contain part_number, description, etc.)
+      const items = (fullPO.purchase_order_items || []).map((item: any) => ({
+        ...item,
+        // Fallback to table data if snapshot fields are missing
+        part_number: item.part_number || 
+                     item.mechanical_manufacture?.part_number || 
+                     item.mechanical_bought_out?.part_number || 
+                     item.electrical_manufacture?.part_number || 
+                     item.electrical_bought_out?.part_number || 
+                     item.pneumatic_bought_out?.part_number || 'N/A',
+        description: item.description || 
+                     item.mechanical_manufacture?.description || 
+                     item.mechanical_bought_out?.description || 
+                     item.electrical_manufacture?.description || 
+                     item.electrical_bought_out?.description || 
+                     item.pneumatic_bought_out?.description || '-'
+      }));
+
+      const poToExport = { ...fullPO, purchase_order_items: items };
+      
+      exportUtils.exportPOToTXT(poToExport);
+      showToast('success', `PO ${po.po_number} exported with ${items.length} items!`);
     } catch (err) {
-      showToast('error', 'Failed to export PO');
+      console.error('Export error:', err);
+      showToast('error', 'Failed to export PO details');
     }
   };
 
