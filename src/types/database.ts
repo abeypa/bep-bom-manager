@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
@@ -56,6 +50,7 @@ export interface Database {
           changed_at?: string;
         };
       };
+
       stock_movements: {
         Row: {
           id: number;
@@ -103,13 +98,13 @@ export interface Database {
           moved_at?: string;
           created_date?: string;
         };
-        Update: {
-          id?: number;
-          movement_type?: 'IN' | 'OUT' | 'ADJUST' | 'RESTORE';
-          part_table_name?: string;
-          part_id?: number;
-          part_number?: string;
-          quantity?: number;
+        Update: Partial<{
+          id: number;
+          movement_type: 'IN' | 'OUT' | 'ADJUST' | 'RESTORE';
+          part_table_name: string;
+          part_id: number;
+          part_number: string;
+          quantity: number;
           stock_before?: number | null;
           stock_after?: number | null;
           supplier_id?: number | null;
@@ -121,12 +116,13 @@ export interface Database {
           site_name?: string | null;
           reference_notes?: string | null;
           unit_price_at_movement?: number | null;
-          currency?: string;
+          currency: string;
           moved_by?: string | null;
-          moved_at?: string;
-          created_date?: string;
-        };
+          moved_at: string;
+          created_date: string;
+        }>;
       };
+
       suppliers: {
         Row: {
           id: number
