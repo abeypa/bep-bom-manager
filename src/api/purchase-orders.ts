@@ -49,14 +49,8 @@ export const purchaseOrdersApi = {
       .select(`
         *,
         suppliers (*),
-        purchase_order_items (
-          *,
-          mechanical_manufacture (*),
-          mechanical_bought_out (*),
-          electrical_manufacture (*),
-          electrical_bought_out (*),
-          pneumatic_bought_out (*)
-        )
+        project:projects (project_name),
+        purchase_order_items (*)
       `)
       .eq('id', poId)
       .single();

@@ -43,23 +43,11 @@ export default function PurchaseOrders() {
         return;
       }
 
-      // 2. Map snapshot data to common terms if needed
-      // (The export utility expects items to contain part_number, description, etc.)
+      // 2. Map snapshot data to common terms
       const items = (fullPO.purchase_order_items || []).map((item: any) => ({
         ...item,
-        // Fallback to table data if snapshot fields are missing
-        part_number: item.part_number || 
-                     item.mechanical_manufacture?.part_number || 
-                     item.mechanical_bought_out?.part_number || 
-                     item.electrical_manufacture?.part_number || 
-                     item.electrical_bought_out?.part_number || 
-                     item.pneumatic_bought_out?.part_number || 'N/A',
-        description: item.description || 
-                     item.mechanical_manufacture?.description || 
-                     item.mechanical_bought_out?.description || 
-                     item.electrical_manufacture?.description || 
-                     item.electrical_bought_out?.description || 
-                     item.pneumatic_bought_out?.description || '-'
+        part_number: item.part_number || 'N/A',
+        description: item.description || '-'
       }));
 
       const poToExport = { ...fullPO, purchase_order_items: items };
