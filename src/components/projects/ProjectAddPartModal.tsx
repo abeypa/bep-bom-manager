@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Package, Search, Info, TrendingDown, DollarSign } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { partsApi, PartCategory } from '@/api/parts'
 import { projectsApi } from '@/api/projects'
@@ -18,10 +18,14 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
   const [selectedPartStr, setSelectedPartStr] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState<number>(0)
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('INR')
+  const [discountPercent, setDiscountPercent] = useState<number>(0)
   const [referenceDesignator, setReferenceDesignator] = useState('')
   const [notes, setNotes] = useState('')
   const [siteName, setSiteName] = useState('Main Site')
+  
+  // For UI context
+  const [selectedPartData, setSelectedPartData] = useState<any>(null)
 
   const categories: PartCategory[] = [
     'mechanical_manufacture',
@@ -45,7 +49,7 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
     enabled: isOpen
   })
 
-  // Handle selected part change to auto-fill price and currency
+  // Handle selected part change to auto-fill snapshots
   useEffect(() => {
     if (selectedPartStr && allPartsData) {
       const [catStr, idStr] = selectedPartStr.split('::')
@@ -53,9 +57,13 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
       const part = catParts.find((p: any) => p.id === parseInt(idStr))
       
       if (part) {
+        setSelectedPartData(part)
         setUnitPrice(part.base_price || 0)
+        setDiscountPercent(part.discount_percent || 0)
         if (part.currency) setCurrency(part.currency)
       }
+    } else {
+      setSelectedPartData(null)
     }
   }, [selectedPartStr, allPartsData])
 
@@ -64,7 +72,8 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
       setSelectedPartStr('')
       setQuantity(1)
       setUnitPrice(0)
-      setCurrency('USD')
+      setCurrency('INR')
+      setDiscountPercent(0)
       setReferenceDesignator('')
       setNotes('')
     }
@@ -74,23 +83,30 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedPartStr) return
+    if (!selectedPartStr || !selectedPartData) return
 
     setIsSubmitting(true)
     try {
       const [category, idStr] = selectedPartStr.split('::')
       const partId = parseInt(idStr)
 
+      // Payload strictly follows the new V3 schema
       const payload: any = {
         project_section_id: sectionId,
         quantity,
-        unit_price: unitPrice || 0,
-        currency,
+        // Snapshot fields (Price Drift Protection)
+        base_price_at_assignment: unitPrice,
+        currency_at_assignment: currency,
+        discount_percent_at_assignment: discountPercent,
+        supplier_name_at_assignment: selectedPartData.suppliers?.name || 'Manual',
+        
+        // Metadata
         reference_designator: referenceDesignator || null,
         notes: notes || null,
         site_name: siteName
       }
 
+      // Individual Foreign Key assignment
       if (category === 'mechanical_manufacture') payload.mechanical_manufacture_id = partId
       else if (category === 'mechanical_bought_out') payload.mechanical_bought_out_part_id = partId
       else if (category === 'electrical_manufacture') payload.electrical_manufacture_id = partId
@@ -98,11 +114,13 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
       else if (category === 'pneumatic_bought_out') payload.pneumatic_bought_out_part_id = partId
 
       await projectsApi.addPartToSection(payload)
+      
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       onClose()
     } catch (error) {
       console.error('Error adding part:', error)
-      alert('Failed to add part to section.')
+      alert('Failed to add part to section. Check console for details.')
     } finally {
       setIsSubmitting(false)
     }
@@ -114,146 +132,184 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 transition-opacity bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
 
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-        <div className="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
-          <div className="flex justify-between items-center mb-5 pb-4 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 leading-6">Add Part to {sectionName}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-500 p-1 rounded-lg hover:bg-gray-100 transition-colors">
-              <span className="sr-only">Close</span>
-              <X className="w-5 h-5" />
+        <div className="inline-block w-full max-w-2xl px-8 pt-8 pb-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-[2.5rem] shadow-2xl">
+          <div className="flex justify-between items-start mb-8">
+            <div>
+               <h3 className="text-2xl font-black text-gray-900 tracking-tight">Add Item to BOM</h3>
+               <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Section: {sectionName}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-300 hover:text-gray-900 p-2 rounded-2xl hover:bg-gray-50 transition-all">
+              <X className="w-6 h-6" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Select Part</label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="p-1.5 bg-gray-50 rounded-[2rem] border border-gray-100 mb-2">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 mb-2">Select Master Part</label>
               {isLoading ? (
-                <div className="py-2 text-sm text-gray-500">Loading parts...</div>
+                <div className="px-4 py-3 flex items-center gap-3">
+                   <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hydrating Catalog...</span>
+                </div>
               ) : (
-                <select
-                  required
-                  value={selectedPartStr}
-                  onChange={(e) => setSelectedPartStr(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                >
-                  <option value="">-- Select a Part --</option>
-                  {allPartsData?.map((group) => (
-                    <optgroup key={group.category} label={formatCategoryLabel(group.category)}>
-                      {group.parts.map((p: any) => (
-                        <option key={p.id} value={`${group.category}::${p.id}`}>
-                          {p.part_number} - {p.description || 'No Description'} (Stock: {p.stock_quantity || 0})
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                <div className="relative group">
+                  <Package className="w-5 h-5 absolute left-4 top-4 text-gray-300 group-focus-within:text-gray-900 transition-colors" />
+                  <select
+                    required
+                    value={selectedPartStr}
+                    onChange={(e) => setSelectedPartStr(e.target.value)}
+                    className="block w-full bg-white border border-gray-100 rounded-[1.5rem] py-4 pl-12 pr-4 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-gray-100 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">-- SEARCH CATALOG --</option>
+                    {allPartsData?.map((group) => (
+                      <optgroup key={group.category} label={formatCategoryLabel(group.category)}>
+                        {group.parts.map((p: any) => (
+                          <option key={p.id} value={`${group.category}::${p.id}`}>
+                            {p.part_number} &middot; {p.description || 'No Description'} (Stock: {p.stock_quantity || 0})
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Quantity</label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(parseInt(e.target.value))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                />
+            {selectedPartData && (
+               <div className="bg-emerald-50/50 border border-emerald-100 rounded-3xl p-5 flex items-start gap-4">
+                  <div className="bg-emerald-600 p-2 rounded-xl text-white shadow-lg shadow-emerald-200">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-emerald-800 uppercase tracking-[0.1em]">Price Snapshot Active</h4>
+                    <p className="text-xs text-emerald-600 font-medium mt-1">
+                       The BOM will freeze the current price of <strong>{unitPrice} {currency}</strong> from <strong>{selectedPartData.suppliers?.name || 'Master Repository'}</strong>. 
+                       Future master price changes won't affect this Project BOM.
+                    </p>
+                  </div>
+               </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Quantity Selection</label>
+                <div className="relative">
+                   <Package className="w-4 h-4 absolute left-4 top-3.5 text-gray-300 pointer-events-none" />
+                   <input
+                    type="number"
+                    required
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value))}
+                    className="block w-full bg-white border border-gray-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100 transition-all"
+                    placeholder="Qty"
+                  />
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Unit Price</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(parseFloat(e.target.value))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                />
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Snapshot Price</label>
+                <div className="relative">
+                   <DollarSign className="w-4 h-4 absolute left-4 top-3.5 text-gray-300 pointer-events-none" />
+                   <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(parseFloat(e.target.value))}
+                    className="block w-full bg-white border border-gray-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100 transition-all"
+                  />
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Currency</label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Currency</label>
                 <select
                   required
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="block w-full bg-white border border-gray-100 rounded-2xl py-3 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100 transition-all"
                 >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="INR">INR</option>
-                  <option value="GBP">GBP</option>
+                  <option value="INR">Indian Rupee (₹)</option>
+                  <option value="USD">US Dollar ($)</option>
+                  <option value="EUR">Euro (€)</option>
+                  <option value="GBP">British Pound (£)</option>
+                </select>
+              </div>
+
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Snapshot Discount (%)</label>
+                <div className="relative">
+                   <TrendingDown className="w-4 h-4 absolute left-4 top-3.5 text-gray-300 pointer-events-none" />
+                   <input
+                    type="number"
+                    step="0.1"
+                    value={discountPercent}
+                    onChange={(e) => setDiscountPercent(parseFloat(e.target.value))}
+                    className="block w-full bg-white border border-gray-100 rounded-2xl py-3 pl-11 pr-4 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Designators</label>
+                <input
+                  type="text"
+                  placeholder="e.g., R1, C2"
+                  value={referenceDesignator}
+                  onChange={(e) => setReferenceDesignator(e.target.value)}
+                  className="block w-full bg-white border border-gray-100 rounded-2xl py-3 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100 transition-all"
+                />
+              </div>
+
+              <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Target Site</label>
+                <select
+                  value={siteName}
+                  onChange={(e) => setSiteName(e.target.value)}
+                  className="block w-full bg-white border border-gray-100 rounded-2xl py-3 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100 transition-all"
+                >
+                  <option value="Main Site">Main Site</option>
+                  <option value="Client Site">Client Site</option>
+                  <option value="Assembly Site">Assembly Site</option>
                 </select>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Reference Designator</label>
-              <input
-                type="text"
-                placeholder="e.g., R1, C2"
-                value={referenceDesignator}
-                onChange={(e) => setReferenceDesignator(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Target Site</label>
-              <select
-                value={siteName}
-                onChange={(e) => setSiteName(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-              >
-                <option value="Main Site">Main Site</option>
-                <option value="Client Site">Client Site</option>
-                <option value="Packaging Site">Packaging Site</option>
-                <option value="Assembly Site">Assembly Site</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Notes</label>
-              <textarea
+            <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
+               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Item Notes</label>
+               <textarea
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                placeholder="Internal assembly or sourcing notes..."
+                className="block w-full bg-white border border-gray-100 rounded-2xl py-3 px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-gray-100 transition-all"
               />
             </div>
 
-            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
+            <div className="pt-6 flex justify-end gap-4 border-t border-gray-50">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="px-6 py-3.5 text-xs font-black text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-all"
               >
-                Cancel
+                Discard
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedPartStr}
-                className="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-primary-600 border border-transparent rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-10 py-3.5 text-xs font-black text-white bg-gray-900 rounded-2xl shadow-xl shadow-gray-200 hover:bg-gray-800 focus:outline-none transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Part
-                  </>
-                )}
+                {isSubmitting ? 'Assigned...' : 'Add to Section'}
               </button>
             </div>
           </form>

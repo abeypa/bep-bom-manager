@@ -6,57 +6,112 @@ export type PartCategory =
   | 'mechanical_bought_out' 
   | 'electrical_manufacture' 
   | 'electrical_bought_out' 
-  | 'pneumatic_bought_out'
+  | 'pneumatic_bought_out';
+
+const logPriceHistory = async (
+  partTable: PartCategory,
+  partId: number,
+  partNumber: string,
+  oldData: any,
+  newData: any,
+  reason: string = 'manual_edit'
+) => {
+  const oldPrice = oldData?.base_price;
+  const newPrice = newData?.base_price;
+  const oldCurrency = oldData?.currency;
+  const newCurrency = newData?.currency || 'INR';
+  const oldDiscount = oldData?.discount_percent;
+  const newDiscount = newData?.discount_percent;
+
+  // Only log if price, currency or discount actually changed
+  if (
+    oldPrice !== newPrice ||
+    oldCurrency !== newCurrency ||
+    oldDiscount !== newDiscount
+  ) {
+    await supabase.from('part_price_history').insert({
+      part_table_name: partTable,
+      part_id: partId,
+      part_number: partNumber,
+      old_price: oldPrice,
+      new_price: newPrice,
+      old_currency: oldCurrency,
+      new_currency: newCurrency,
+      old_discount_percent: oldDiscount,
+      new_discount_percent: newDiscount,
+      change_reason: reason,
+      changed_by: (await supabase.auth.getUser()).data.user?.email || 'system',
+    });
+  }
+};
 
 export const partsApi = {
-  // Get all parts for a specific category
-  getParts: async (category: PartCategory) => {
-    const { data, error } = await (supabase.from(category) as any)
+  // Get parts by category
+  getPartsByCategory: async (category: PartCategory) => {
+    const { data, error } = await supabase
+      .from(category)
       .select(`
         *,
         suppliers:supplier_id (
           name
         )
       `)
-      .order('created_date', { ascending: false })
-      
-    if (error) throw error
-    return data
+      .order('part_number');
+    if (error) throw error;
+    return data;
   },
-  
-  // Delete a part
-  deletePart: async (category: PartCategory, id: number) => {
-    const { error } = await (supabase.from(category as any) as any)
-      .delete()
-      .eq('id', id)
-      
-    if (error) throw error
+
+  // Backward compatibility alias for 'getParts'
+  getParts: async (category: PartCategory) => {
+    return partsApi.getPartsByCategory(category);
   },
 
   // Create a new part
   createPart: async (category: PartCategory, payload: any) => {
-    const { data, error } = await (supabase.from(category as any) as any)
+    const { data, error } = await supabase
+      .from(category)
       .insert([payload])
       .select()
       .single()
 
     if (error) throw error
+    
+    // Log initial price
+    if (data) {
+      await logPriceHistory(category, data.id, data.part_number, null, data, 'manual_edit');
+    }
+    
     return data
   },
 
-  // Update an existing part
-  updatePart: async (category: PartCategory, id: number, payload: any) => {
-    const { data, error } = await (supabase.from(category as any) as any)
-      .update(payload)
+  // Updated: now logs price history automatically
+  updatePart: async (category: PartCategory, id: number, updates: any) => {
+    // 1. Fetch current values for comparison
+    const { data: current } = await supabase
+      .from(category)
+      .select('base_price, currency, discount_percent, part_number')
+      .eq('id', id)
+      .single();
+
+    // 2. Perform the update
+    const { data: updated, error } = await supabase
+      .from(category)
+      .update(updates)
       .eq('id', id)
       .select()
-      .single()
+      .single();
 
-    if (error) throw error
-    return data
+    if (error) throw error;
+
+    // 3. Log price history if price fields changed
+    if (current && updated) {
+      await logPriceHistory(category, id, current.part_number, current, updated, 'manual_edit');
+    }
+
+    return updated;
   },
 
-  // Import parts from JSON array
+  // Updated: bulk import now also logs price history
   importParts: async (parts: any[]) => {
     let partsProcessed = 0
     let partsAdded = 0
@@ -120,26 +175,28 @@ export const partsApi = {
         })
 
         // Check if part exists
-        const { data: existing } = await (supabase.from(category) as any)
-          .select('id')
+        const { data: existing } = await supabase
+          .from(category)
+          .select('id, base_price, currency, discount_percent, part_number')
           .eq('part_number', part.PartNumber)
           .single()
 
+        const { data: result, error } = await supabase
+          .from(category)
+          .upsert(payload, { onConflict: 'part_number' })
+          .select()
+          .single()
+
+        if (error) throw error
+
         if (existing) {
-          // Update
-          const { error: upError } = await (supabase.from(category) as any)
-            .update(payload)
-            .eq('id', (existing as any).id)
-          
-          if (upError) throw upError
           partsUpdated++
+          await logPriceHistory(category, existing.id, part.PartNumber, existing, result, 'json_import');
         } else {
-          // Insert
-          const { error: inError } = await (supabase.from(category) as any)
-            .insert([payload])
-          
-          if (inError) throw inError
           partsAdded++
+          if (result) {
+            await logPriceHistory(category, result.id, part.PartNumber, null, result, 'json_import');
+          }
         }
       } catch (err: any) {
         errors++
@@ -158,6 +215,22 @@ export const partsApi = {
       errors,
       errorMessages
     }
-  }
-}
+  },
 
+  // New: Get price history for a specific part
+  getPriceHistory: async (category: PartCategory, partId: number) => {
+    const { data, error } = await supabase
+      .from('part_price_history')
+      .select('*')
+      .eq('part_table_name', category)
+      .eq('part_id', partId)
+      .order('changed_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  deletePart: async (category: PartCategory, id: number) => {
+    const { error } = await supabase.from(category).delete().eq('id', id);
+    if (error) throw error;
+  },
+};

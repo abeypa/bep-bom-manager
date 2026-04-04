@@ -41,7 +41,7 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
 
   const { data: po, isLoading } = useQuery({
     queryKey: ['purchase-order', poId],
-    queryFn: () => purchaseOrdersApi.getPurchaseOrder(poId!),
+    queryFn: () => purchaseOrdersApi.getById(poId!),
     enabled: !!poId && isOpen
   })
 
@@ -54,24 +54,32 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
 
   // Initialize receive quantities when items load
   useEffect(() => {
-    if ((po as any)?.items) {
+    if ((po as any)?.purchase_order_items) {
       const defaults: Record<number, number> = {}
-      ;((po as any).items as any[]).forEach((item: any) => {
-        defaults[item.id] = item.quantity
+      ((po as any).purchase_order_items as any[]).forEach((item: any) => {
+        const remaining = item.quantity - (item.received_qty || 0);
+        defaults[item.id] = Math.max(0, remaining);
       })
       setReceiveQuantities(defaults)
     }
-  }, [(po as any)?.items])
+  }, [(po as any)?.purchase_order_items])
 
   const validTransitions = useMemo(() => {
     if (!po) return []
-    return purchaseOrdersApi.getValidTransitions((po as any).status as POStatus)
-  }, [(po as any)?.status])
+    // Define logic for valid status transitions if needed globally, otherwise use local mapping
+    const transitions: Record<string, POStatus[]> = {
+      'Pending':   ['Sent', 'Cancelled'],
+      'Sent':      ['Confirmed', 'Cancelled'],
+      'Confirmed': ['Partial', 'Received', 'Cancelled'],
+      'Partial':   ['Received', 'Cancelled'],
+    };
+    return transitions[(po as any).status] || []
+  }, [po])
 
   // Status change mutation
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: POStatus }) =>
-      purchaseOrdersApi.changeStatus(id, status),
+      purchaseOrdersApi.updateStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
@@ -93,7 +101,7 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => purchaseOrdersApi.deletePurchaseOrder(id),
+    mutationFn: (id: number) => purchaseOrdersApi.deletePO(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
       queryClient.invalidateQueries({ queryKey: ['project-pos'] })
@@ -104,18 +112,22 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
   // Receive items mutation
   const receiveMutation = useMutation({
     mutationFn: () => {
-      const items = Object.entries(receiveQuantities).map(([itemId, qty]) => ({
-        itemId: parseInt(itemId),
-        receivedQty: qty
-      }))
+      const items = Object.entries(receiveQuantities)
+        .filter(([_, qty]) => qty > 0)
+        .map(([itemId, qty]) => ({
+          id: parseInt(itemId),
+          received_qty: qty
+        }))
+
+      if (items.length === 0) throw new Error('No items to receive')
       return purchaseOrdersApi.receiveItems(poId!, items)
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
       queryClient.invalidateQueries({ queryKey: ['parts'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
-      alert(`Items received successfully! PO status: ${result.status}`)
+      alert(`Items received successfully!`)
       setActiveView('details')
     },
     onError: (err: any) => alert(`Receive failed: ${err.message}`)
@@ -123,7 +135,7 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
 
   // Delete item mutation
   const deleteItemMutation = useMutation({
-    mutationFn: (itemId: number) => purchaseOrdersApi.deleteItem(itemId),
+    mutationFn: (itemId: number) => purchaseOrdersApi.deletePOItem(itemId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order', poId] })
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] })
@@ -179,7 +191,7 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                     </span>
                   </div>
                   <p className="text-gray-400 text-xs mt-1 font-medium">
-                    {(po as any).suppliers?.name} &middot; {new Date((po as any).po_date).toLocaleDateString()}
+                    {(po as any).suppliers?.name} &middot; {new Date((po as any).created_date).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -267,8 +279,8 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                     <div className="grid grid-cols-4 gap-4">
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Project</p>
-                        <p className="text-sm font-bold text-gray-900 mt-1">{(po as any).projects?.project_name}</p>
-                        <p className="text-[10px] text-gray-500 font-mono">{(po as any).projects?.project_number}</p>
+                        <p className="text-sm font-bold text-gray-900 mt-1">{(po as any).project?.project_name}</p>
+                        <p className="text-[10px] text-gray-500 font-mono">{(po as any).project_number}</p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Grand Total</p>
@@ -276,11 +288,13 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Items</p>
-                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">{(po as any).total_items}</p>
+                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">{(po as any).purchase_order_items?.length || 0}</p>
                       </div>
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Qty</p>
-                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">{(po as any).total_quantity}</p>
+                        <p className="text-lg font-black text-gray-900 mt-1 tabular-nums">
+                          {(po as any).purchase_order_items?.reduce((acc: number, item: any) => acc + item.quantity, 0)}
+                        </p>
                       </div>
                     </div>
 
@@ -346,21 +360,23 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                               <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Part</th>
                               <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
                               <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
+                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Recvd</th>
                               <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Price</th>
-                              <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Disc %</th>
                               <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
                               {canEdit && <th className="px-4 py-2.5 w-10"></th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
-                            {((po as any).items || []).map((item: any) => (
+                            {((po as any).purchase_order_items || []).map((item: any) => (
                               <tr key={item.id} className="hover:bg-gray-50/50">
                                 <td className="px-4 py-3 text-sm font-bold text-gray-900 font-mono">{item.part_number}</td>
                                 <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{item.description || '-'}</td>
                                 <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">{item.quantity}</td>
+                                <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right tabular-nums">{item.received_qty || 0}</td>
                                 <td className="px-4 py-3 text-sm text-gray-600 text-right tabular-nums">{item.unit_price?.toFixed(2)}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-right tabular-nums">{item.discount_percent || 0}%</td>
-                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">{item.total_amount?.toFixed(2)}</td>
+                                <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">
+                                  {(item.unit_price * item.quantity * (1 - (item.discount_percent || 0) / 100)).toFixed(2)}
+                                </td>
                                 {canEdit && (
                                   <td className="px-4 py-3 text-right">
                                     <button
@@ -376,7 +392,7 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                           </tbody>
                           <tfoot className="bg-gray-50">
                             <tr>
-                              <td colSpan={canEdit ? 5 : 5} className="px-4 py-3 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Grand Total</td>
+                              <td colSpan={5} className="px-4 py-3 text-right text-xs font-black text-gray-400 uppercase tracking-widest">Grand Total</td>
                               <td className="px-4 py-3 text-right text-sm font-black text-gray-900 tabular-nums">{(po as any).currency} {(po as any).grand_total?.toFixed(2)}</td>
                               {canEdit && <td></td>}
                             </tr>
@@ -393,9 +409,8 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                       <div>
                         <h4 className="text-sm font-bold text-green-800">Receive Items into Stock</h4>
                         <p className="text-xs text-green-700 mt-1">
-                          Enter the quantity received for each item. Stock will be updated automatically.
-                          If all items are fully received, PO status will change to "Received".
-                          Otherwise it will be marked as "Partial".
+                          Enter the quantity received for each item. Stock and Audit Trails will be updated automatically.
+                          If all items are fully received, PO status will be updated accordingly.
                         </p>
                       </div>
                     </div>
@@ -405,32 +420,35 @@ const PODetailModal = ({ isOpen, onClose, poId }: PODetailModalProps) => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase">Part Number</th>
-                            <th className="px-4 py-2.5 text-left text-[10px] font-black text-gray-400 uppercase">Description</th>
                             <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase">Ordered</th>
-                            <th className="px-4 py-2.5 text-center text-[10px] font-black text-gray-400 uppercase">Receive Qty</th>
+                            <th className="px-4 py-2.5 text-right text-[10px] font-black text-gray-400 uppercase">Already Recvd</th>
+                            <th className="px-4 py-2.5 text-center text-[10px] font-black text-gray-400 uppercase">Receive Now</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {((po as any).items || []).map((item: any) => (
-                            <tr key={item.id} className="hover:bg-gray-50/50">
-                              <td className="px-4 py-3 text-sm font-bold text-gray-900 font-mono">{item.part_number}</td>
-                              <td className="px-4 py-3 text-sm text-gray-500">{item.description || '-'}</td>
-                              <td className="px-4 py-3 text-sm font-bold text-gray-900 text-right tabular-nums">{item.quantity}</td>
-                              <td className="px-4 py-3 text-center">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={item.quantity}
-                                  value={receiveQuantities[item.id] ?? item.quantity}
-                                  onChange={(e) => setReceiveQuantities(prev => ({
-                                    ...prev,
-                                    [item.id]: parseInt(e.target.value) || 0
-                                  }))}
-                                  className="w-24 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-bold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                                />
-                              </td>
-                            </tr>
-                          ))}
+                          {((po as any).purchase_order_items || []).map((item: any) => {
+                             const remaining = item.quantity - (item.received_qty || 0);
+                             return (
+                              <tr key={item.id} className="hover:bg-gray-50/50">
+                                <td className="px-4 py-3 text-sm font-bold text-gray-900 font-mono">{item.part_number}</td>
+                                <td className="px-4 py-3 text-sm font-bold text-gray-400 text-right tabular-nums">{item.quantity}</td>
+                                <td className="px-4 py-3 text-sm font-bold text-emerald-600 text-right tabular-nums">{item.received_qty || 0}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={remaining}
+                                    value={receiveQuantities[item.id] ?? remaining}
+                                    onChange={(e) => setReceiveQuantities(prev => ({
+                                      ...prev,
+                                      [item.id]: parseInt(e.target.value) || 0
+                                    }))}
+                                    className="w-24 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-bold focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                                  />
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, AlertTriangle, Info, TrendingDown, DollarSign } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { projectsApi } from '@/api/projects'
 
@@ -16,7 +16,8 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
   const [formData, setFormData] = useState({
     quantity: 1,
     unit_price: 0,
-    currency: 'USD',
+    currency: 'INR',
+    discount_percent: 0,
     reference_designator: '',
     notes: '',
     update_master: false
@@ -26,8 +27,10 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
     if (projectPart && isOpen) {
       setFormData({
         quantity: projectPart.quantity || 1,
-        unit_price: projectPart.unit_price || 0,
-        currency: projectPart.currency || 'USD',
+        // Using snapshot fields if available, falling back to legacy unit_price
+        unit_price: projectPart.base_price_at_assignment || projectPart.unit_price || 0,
+        currency: projectPart.currency_at_assignment || projectPart.currency || 'INR',
+        discount_percent: projectPart.discount_percent_at_assignment || projectPart.discount_percent || 0,
         reference_designator: projectPart.reference_designator || '',
         notes: projectPart.notes || '',
         update_master: false
@@ -41,8 +44,20 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
     e.preventDefault()
     setIsSubmitting(true)
     try {
-      await projectsApi.updatePartInSection(projectPart.id, formData)
+      // V3 mapping of frontend form back to DB snapshot fields
+      const payload = {
+        quantity: formData.quantity,
+        base_price_at_assignment: formData.unit_price,
+        currency_at_assignment: formData.currency,
+        discount_percent_at_assignment: formData.discount_percent,
+        reference_designator: formData.reference_designator || null,
+        notes: formData.notes || null
+      }
+
+      await projectsApi.updatePartInSection(projectPart.id, payload, formData.update_master)
+      
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       onClose()
     } catch (error) {
       console.error('Error updating part:', error)
@@ -54,110 +69,141 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
+      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 transition-opacity bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-        <div className="inline-block px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-          <div className="flex justify-between items-center mb-5 pb-4 border-b border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 leading-6">Edit BOM Part</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-500 p-1 rounded-lg hover:bg-gray-100 transition-colors">
+        <div className="inline-block w-full max-w-lg px-8 pt-8 pb-8 overflow-hidden text-left align-middle transition-all transform bg-white rounded-[2.5rem] shadow-2xl">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+               <h3 className="text-xl font-black text-gray-900 tracking-tight">Edit BOM Snapshot</h3>
+               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Part: {projectPart.part_number}</p>
+            </div>
+            <button onClick={onClose} className="text-gray-300 hover:text-gray-900 p-2 rounded-2xl hover:bg-gray-50 transition-all">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+               <Info className="w-5 h-5 text-amber-600 mt-0.5" />
+               <p className="text-xs text-amber-800 font-medium">
+                  Modifying these values updates the <strong>Project Snapshot</strong>. This does not affect the master catalog unless checked below.
+               </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Quantity</label>
+              <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Quantity</label>
                 <input
                   type="number"
                   required
                   min="1"
                   value={formData.quantity}
                   onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-bold"
+                  className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 px-3 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Unit Price</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={formData.unit_price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unit_price: parseFloat(e.target.value) }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-bold"
-                />
+              <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Unit Price</label>
+                <div className="relative">
+                   <DollarSign className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-300 pointer-events-none" />
+                   <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={formData.unit_price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, unit_price: parseFloat(e.target.value) }))}
+                    className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 pl-9 pr-3 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Currency</label>
+              <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Currency</label>
                 <select
                   value={formData.currency}
                   onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-bold"
+                  className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100"
                 >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="INR">INR</option>
-                  <option value="GBP">GBP</option>
+                  <option value="INR">INR (₹)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Reference Designator</label>
-                <input
-                  type="text"
-                  value={formData.reference_designator}
-                  onChange={(e) => setFormData(prev => ({ ...prev, reference_designator: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-bold"
-                  placeholder="e.g. R1, C2"
-                />
+              <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Discount %</label>
+                 <div className="relative">
+                   <TrendingDown className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-300 pointer-events-none" />
+                   <input
+                    type="number"
+                    step="0.1"
+                    value={formData.discount_percent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, discount_percent: parseFloat(e.target.value) }))}
+                    className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 pl-9 pr-3 text-sm font-bold tabular-nums outline-none focus:ring-2 focus:ring-gray-100"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Notes</label>
+            <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Reference Designator</label>
+              <input
+                type="text"
+                value={formData.reference_designator}
+                onChange={(e) => setFormData(prev => ({ ...prev, reference_designator: e.target.value }))}
+                className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100"
+                placeholder="e.g. R1, C2"
+              />
+            </div>
+
+            <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Item Notes</label>
               <textarea
                 rows={2}
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-medium"
+                className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 px-4 text-xs font-medium outline-none focus:ring-2 focus:ring-gray-100 resize-none"
+                placeholder="Internal notes for this project item..."
               />
             </div>
 
-            <div className="flex items-center space-x-2 py-2">
-              <input
-                id="update_master"
-                type="checkbox"
-                checked={formData.update_master}
-                onChange={(e) => setFormData(prev => ({ ...prev, update_master: e.target.checked }))}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
-              <label htmlFor="update_master" className="text-xs font-bold text-gray-600 uppercase tracking-tight">
-                Update master part pricing/description
-              </label>
+            <div className="px-6 py-4 bg-red-50/30 border border-red-50 rounded-2xl flex items-center justify-between">
+               <div className="flex items-center gap-3">
+                  <input
+                    id="update_master"
+                    type="checkbox"
+                    checked={formData.update_master}
+                    onChange={(e) => setFormData(prev => ({ ...prev, update_master: e.target.checked }))}
+                    className="h-5 w-5 text-gray-900 border-gray-200 rounded-lg focus:ring-0 cursor-pointer"
+                  />
+                  <label htmlFor="update_master" className="text-[10px] font-black text-gray-600 uppercase tracking-tight cursor-pointer">
+                    Sync changes to master catalog
+                  </label>
+               </div>
+               {formData.update_master && <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse" />}
             </div>
 
-            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100">
+            <div className="pt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-xs font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-all"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-primary-600 border border-transparent rounded-lg shadow-lg shadow-primary-100 hover:bg-primary-700 transition-all disabled:opacity-50"
+                className="inline-flex items-center px-8 py-3.5 text-xs font-black text-white bg-gray-900 rounded-2xl shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95 disabled:opacity-50 uppercase tracking-widest"
               >
-                {isSubmitting ? 'Saving...' : (
+                {isSubmitting ? 'Updating...' : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    Save Changes
+                    Apply Changes
                   </>
                 )}
               </button>

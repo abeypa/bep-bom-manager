@@ -9,6 +9,124 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      part_price_history: {
+        Row: {
+          id: number;
+          part_table_name: string;
+          part_id: number;
+          part_number: string;
+          old_price: number | null;
+          new_price: number;
+          old_currency: string | null;
+          new_currency: string;
+          old_discount_percent: number | null;
+          new_discount_percent: number | null;
+          change_reason: string | null;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: number;
+          part_table_name: string;
+          part_id: number;
+          part_number: string;
+          old_price?: number | null;
+          new_price: number;
+          old_currency?: string | null;
+          new_currency?: string;
+          old_discount_percent?: number | null;
+          new_discount_percent?: number | null;
+          change_reason?: string | null;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Update: {
+          id?: number;
+          part_table_name?: string;
+          part_id?: number;
+          part_number?: string;
+          old_price?: number | null;
+          new_price?: number;
+          old_currency?: string | null;
+          new_currency?: string;
+          old_discount_percent?: number | null;
+          new_discount_percent?: number | null;
+          change_reason?: string | null;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+      };
+      stock_movements: {
+        Row: {
+          id: number;
+          movement_type: 'IN' | 'OUT' | 'ADJUST' | 'RESTORE';
+          part_table_name: string;
+          part_id: number;
+          part_number: string;
+          quantity: number;
+          stock_before?: number | null;
+          stock_after?: number | null;
+          supplier_id?: number | null;
+          supplier_name?: string | null;
+          po_number?: string | null;
+          project_name?: string | null;
+          project_id?: number | null;
+          project_section_name?: string | null;
+          site_name?: string | null;
+          reference_notes?: string | null;
+          unit_price_at_movement?: number | null;
+          currency: string;
+          moved_by?: string | null;
+          moved_at: string;
+          created_date: string;
+        };
+        Insert: {
+          id?: number;
+          movement_type: 'IN' | 'OUT' | 'ADJUST' | 'RESTORE';
+          part_table_name: string;
+          part_id: number;
+          part_number: string;
+          quantity: number;
+          stock_before?: number | null;
+          stock_after?: number | null;
+          supplier_id?: number | null;
+          supplier_name?: string | null;
+          po_number?: string | null;
+          project_name?: string | null;
+          project_id?: number | null;
+          project_section_name?: string | null;
+          site_name?: string | null;
+          reference_notes?: string | null;
+          unit_price_at_movement?: number | null;
+          currency?: string;
+          moved_by?: string | null;
+          moved_at?: string;
+          created_date?: string;
+        };
+        Update: {
+          id?: number;
+          movement_type?: 'IN' | 'OUT' | 'ADJUST' | 'RESTORE';
+          part_table_name?: string;
+          part_id?: number;
+          part_number?: string;
+          quantity?: number;
+          stock_before?: number | null;
+          stock_after?: number | null;
+          supplier_id?: number | null;
+          supplier_name?: string | null;
+          po_number?: string | null;
+          project_name?: string | null;
+          project_id?: number | null;
+          project_section_name?: string | null;
+          site_name?: string | null;
+          reference_notes?: string | null;
+          unit_price_at_movement?: number | null;
+          currency?: string;
+          moved_by?: string | null;
+          moved_at?: string;
+          created_date?: string;
+        };
+      };
       suppliers: {
         Row: {
           id: number
@@ -633,45 +751,69 @@ export interface Database {
       }
       project_parts: {
         Row: {
-          id: number
-          project_section_id: number
-          part_type: 'mechanical_manufacture' | 'mechanical_bought_out' | 'electrical_manufacture' | 'electrical_bought_out' | 'pneumatic_bought_out'
-          part_id: number
-          quantity: number
-          unit_price: number
-          currency: string | null
-          reference_designator: string | null
-          notes: string | null
-          created_date: string
-          updated_date: string | null
-        }
+          id: number;
+          project_section_id: number;
+          mechanical_manufacture_id?: number | null;
+          mechanical_bought_out_part_id?: number | null;
+          electrical_manufacture_id?: number | null;
+          electrical_bought_out_part_id?: number | null;
+          pneumatic_bought_out_part_id?: number | null;
+          quantity: number;
+          unit_price: number;
+          currency: string;
+          discount_percent: number;
+          base_price_at_assignment?: number | null;
+          supplier_name_at_assignment?: string | null;
+          reference_designator?: string | null;
+          notes?: string | null;
+          use_date_time?: string | null;
+          assigned_at?: string | null;
+          created_date: string;
+          updated_date?: string | null;
+        };
         Insert: {
-          id?: number
-          project_section_id: number
-          part_type: 'mechanical_manufacture' | 'mechanical_bought_out' | 'electrical_manufacture' | 'electrical_bought_out' | 'pneumatic_bought_out'
-          part_id: number
-          quantity?: number
-          unit_price?: number
-          currency?: string | null
-          reference_designator?: string | null
-          notes?: string | null
-          created_date?: string
-          updated_date?: string | null
-        }
-        Update: {
-          id?: number
-          project_section_id?: number
-          part_type?: 'mechanical_manufacture' | 'mechanical_bought_out' | 'electrical_manufacture' | 'electrical_bought_out' | 'pneumatic_bought_out'
-          part_id?: number
-          quantity?: number
-          unit_price?: number
-          currency?: string | null
-          reference_designator?: string | null
-          notes?: string | null
-          created_date?: string
-          updated_date?: string | null
-        }
-      }
+          id?: number;
+          project_section_id: number;
+          mechanical_manufacture_id?: number | null;
+          mechanical_bought_out_part_id?: number | null;
+          electrical_manufacture_id?: number | null;
+          electrical_bought_out_part_id?: number | null;
+          pneumatic_bought_out_part_id?: number | null;
+          quantity?: number;
+          unit_price?: number;
+          currency?: string;
+          discount_percent?: number;
+          base_price_at_assignment?: number | null;
+          supplier_name_at_assignment?: string | null;
+          reference_designator?: string | null;
+          notes?: string | null;
+          use_date_time?: string | null;
+          assigned_at?: string | null;
+          created_date?: string;
+          updated_date?: string | null;
+        };
+        Update: Partial<{
+          id: number;
+          project_section_id: number;
+          mechanical_manufacture_id?: number | null;
+          mechanical_bought_out_part_id?: number | null;
+          electrical_manufacture_id?: number | null;
+          electrical_bought_out_part_id?: number | null;
+          pneumatic_bought_out_part_id?: number | null;
+          quantity: number;
+          unit_price: number;
+          currency: string;
+          discount_percent: number;
+          base_price_at_assignment?: number | null;
+          supplier_name_at_assignment?: string | null;
+          reference_designator?: string | null;
+          notes?: string | null;
+          use_date_time?: string | null;
+          assigned_at?: string | null;
+          created_date: string;
+          updated_date?: string | null;
+        }>;
+      };
       purchase_orders: {
         Row: {
           id: number

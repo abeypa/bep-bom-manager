@@ -6,33 +6,29 @@ export type PurchaseOrderInsert = Database['public']['Tables']['purchase_orders'
 export type PurchaseOrderUpdate = Database['public']['Tables']['purchase_orders']['Update']
 export type PurchaseOrderItem = Database['public']['Tables']['purchase_order_items']['Row']
 
-export type POStatus = 'Pending' | 'Sent' | 'Confirmed' | 'Partial' | 'Received' | 'Cancelled'
-
-// Valid status transitions
-const STATUS_TRANSITIONS: Record<POStatus, POStatus[]> = {
-  'Pending':   ['Sent', 'Cancelled'],
-  'Sent':      ['Confirmed', 'Cancelled'],
-  'Confirmed': ['Partial', 'Received', 'Cancelled'],
-  'Partial':   ['Received', 'Cancelled'],
-  'Received':  [], // terminal state
-  'Cancelled': [], // terminal state
-}
+export type POStatus = 'Pending' | 'Sent' | 'Confirmed' | 'Partial' | 'Received' | 'Cancelled';
 
 export const purchaseOrdersApi = {
-  getPurchaseOrders: async () => {
+  // Get all POs
+  getAll: async () => {
     const { data, error } = await supabase
       .from('purchase_orders')
       .select(`
         *,
-        projects (project_name, project_number),
-        suppliers (name)
+        suppliers (name),
+        project:projects (project_name)
       `)
-      .order('po_date', { ascending: false })
-      
-    if (error) throw error
-    return data as (PurchaseOrder & { projects: { project_name: string, project_number: string }, suppliers: { name: string } })[]
+      .order('created_date', { ascending: false });
+    if (error) throw error;
+    return data;
   },
 
+  // Backward compatibility alias
+  getPurchaseOrders: async () => {
+    return purchaseOrdersApi.getAll();
+  },
+
+  // Get single PO by project (for Project Details)
   getProjectPurchaseOrders: async (projectId: number) => {
     const { data, error } = await supabase
       .from('purchase_orders')
@@ -46,35 +42,47 @@ export const purchaseOrdersApi = {
     if (error) throw error
     return data
   },
-  
-  getPurchaseOrder: async (id: number) => {
+
+  // Get single PO with full line items + snapshot data
+  getById: async (poId: number) => {
     const { data, error } = await supabase
       .from('purchase_orders')
       .select(`
         *,
-        items:purchase_order_items (*),
-        projects (*),
-        suppliers (*)
+        suppliers (*),
+        purchase_order_items (
+          *,
+          mechanical_manufacture (*),
+          mechanical_bought_out (*),
+          electrical_manufacture (*),
+          electrical_bought_out (*),
+          pneumatic_bought_out (*)
+        )
       `)
-      .eq('id', id)
-      .single()
-      
-    if (error) throw error
-    return data
-  },
-  
-  createPurchaseOrder: async (po: PurchaseOrderInsert) => {
-    const { data, error } = await (supabase.from('purchase_orders') as any)
-      .insert([po])
-      .select()
-      .single()
-      
-    if (error) throw error
-    return data
+      .eq('id', poId)
+      .single();
+    if (error) throw error;
+    return data;
   },
 
+  // Backward compatibility alias
+  getPurchaseOrder: async (id: number) => {
+    return purchaseOrdersApi.getById(id);
+  },
+
+  // Create new PO
+  create: async (poData: PurchaseOrderInsert) => {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .insert([poData])
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Create with Items
   createPurchaseOrderWithItems: async (po: PurchaseOrderInsert, items: any[]) => {
-    // 1. Create the PO
     const { data: newPO, error: poError } = await (supabase.from('purchase_orders') as any)
       .insert([po])
       .select()
@@ -82,7 +90,6 @@ export const purchaseOrdersApi = {
 
     if (poError) throw poError;
 
-    // 2. Create the Items
     const itemsWithPOId = items.map(item => ({
       ...item,
       purchase_order_id: newPO.id
@@ -98,147 +105,134 @@ export const purchaseOrdersApi = {
 
     return newPO;
   },
-  
-  updatePurchaseOrder: async (id: number, po: PurchaseOrderUpdate) => {
-    const { data, error } = await (supabase.from('purchase_orders') as any)
-      .update(po)
-      .eq('id', id)
+
+  // Update PO status with validation
+  updateStatus: async (poId: number, newStatus: POStatus) => {
+    const { data: current } = await supabase
+      .from('purchase_orders')
+      .select('status')
+      .eq('id', poId)
+      .single();
+
+    const validTransitions: Record<string, POStatus[]> = {
+      'Pending':   ['Sent', 'Cancelled'],
+      'Sent':      ['Confirmed', 'Cancelled'],
+      'Confirmed': ['Partial', 'Received', 'Cancelled'],
+      'Partial':   ['Received', 'Cancelled'],
+    };
+
+    const currentStatus = (current as any)?.status || 'Pending';
+    if (validTransitions[currentStatus] && !validTransitions[currentStatus].includes(newStatus)) {
+      throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
+    }
+
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .update({ status: newStatus, updated_date: new Date().toISOString() })
+      .eq('id', poId)
       .select()
-      .single()
-      
-    if (error) throw error
-    return data
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
-  deletePurchaseOrder: async (id: number) => {
-    // Items cascade delete due to FK ON DELETE CASCADE
-    const { error } = await supabase
-      .from('purchase_orders')
-      .delete()
-      .eq('id', id)
-      
-    if (error) throw error
-  },
-
-  // Get valid next statuses for a PO
-  getValidTransitions: (currentStatus: POStatus): POStatus[] => {
-    return STATUS_TRANSITIONS[currentStatus] || []
-  },
-
-  // Change PO status with validation
-  changeStatus: async (id: number, newStatus: POStatus) => {
-    // 1. Get current PO
-    const { data: po, error: fetchError } = await supabase
-      .from('purchase_orders')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (fetchError) throw fetchError
-
-    const currentStatus = (po as any).status as POStatus
-    const validTransitions = STATUS_TRANSITIONS[currentStatus]
+  // Receive items (CRITICAL: updates stock + logs movement)
+  receiveItems: async (poId: number, receivedItems: Array<{ id: number; received_qty: number }>) => {
+    const userEmail = (await supabase.auth.getUser()).data.user?.email || 'system';
     
-    if (!validTransitions?.includes(newStatus)) {
-      throw new Error(`Cannot change status from "${currentStatus}" to "${newStatus}". Valid transitions: ${validTransitions?.join(', ') || 'none'}`)
+    for (const itemRequest of receivedItems) {
+      if (itemRequest.received_qty <= 0) continue;
+
+      // Get current PO item to find its master part
+      const { data: poItem } = await supabase
+        .from('purchase_order_items')
+        .select(`*, po:purchase_orders(id, po_number)`)
+        .eq('id', itemRequest.id)
+        .single();
+
+      if (!poItem) continue;
+
+      const partTableName = (poItem as any).part_type;
+      const partId = (poItem as any).part_id;
+      const po_number = (poItem as any).po?.po_number;
+
+      if (!partTableName || !partId) continue;
+
+      // 1. Get current master stock
+      const { data: part } = await supabase
+        .from(partTableName)
+        .select('stock_quantity, part_number')
+        .eq('id', partId)
+        .single();
+
+      if (!part) continue;
+
+      const stockBefore = part.stock_quantity || 0;
+      const newStock = stockBefore + itemRequest.received_qty;
+
+      // 2. Update master stock and log movement
+      await Promise.all([
+        supabase.from(partTableName).update({ 
+          stock_quantity: newStock,
+          received_qty: ((part as any).received_qty || 0) + itemRequest.received_qty,
+          updated_date: new Date().toISOString()
+        }).eq('id', partId),
+        
+        supabase.from('stock_movements').insert({
+          movement_type: 'IN',
+          part_table_name: partTableName,
+          part_id: partId,
+          part_number: part.part_number,
+          quantity: itemRequest.received_qty,
+          stock_before: stockBefore,
+          stock_after: newStock,
+          po_number: po_number,
+          moved_by: userEmail
+        })
+      ]);
+
+      // 3. Update received qty in PO item
+      await supabase
+        .from('purchase_order_items')
+        .update({ 
+          received_qty: ((poItem as any).received_qty || 0) + itemRequest.received_qty 
+        })
+        .eq('id', itemRequest.id);
     }
 
-    // 2. Update status
-    const { data, error } = await (supabase.from('purchase_orders') as any)
-      .update({ status: newStatus, updated_date: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+    return { success: true };
   },
 
-  // Receive PO items - updates stock quantities on master part tables
-  receiveItems: async (poId: number, receivedItems: { itemId: number; receivedQty: number }[]) => {
-    // 1. Get PO and items
-    const { data: po, error: poError } = await supabase
+  // Delete PO (only if Pending or Cancelled)
+  deletePO: async (poId: number) => {
+    const { data: po } = await supabase
       .from('purchase_orders')
-      .select(`*, items:purchase_order_items(*)`)
+      .select('status')
       .eq('id', poId)
-      .single()
+      .single();
 
-    if (poError) throw poError
-
-    let allFullyReceived = true
-
-    for (const received of receivedItems) {
-      const item = (po as any).items?.find((i: any) => i.id === received.itemId)
-      if (!item) continue
-
-      if (received.receivedQty <= 0) {
-        allFullyReceived = false
-        continue
-      }
-
-      // Determine which master table to update
-      const partType = item.part_type
-      const partNumber = item.part_number
-
-      if (partType && partNumber) {
-        // Get master part
-        const { data: masterPart } = await (supabase.from(partType) as any)
-          .select('id, stock_quantity, received_qty')
-          .eq('part_number', partNumber)
-          .single()
-
-        if (masterPart) {
-          // Update master stock
-          await (supabase.from(partType) as any)
-            .update({
-              stock_quantity: (masterPart.stock_quantity || 0) + received.receivedQty,
-              received_qty: (masterPart.received_qty || 0) + received.receivedQty,
-              updated_date: new Date().toISOString()
-            })
-            .eq('id', masterPart.id)
-        }
-      }
-
-      // Check if this item is partially received
-      if (received.receivedQty < item.quantity) {
-        allFullyReceived = false
-      }
+    if (!['Pending', 'Cancelled'].includes((po as any)?.status)) {
+      throw new Error('Only Pending or Cancelled POs can be deleted');
     }
 
-    // 3. Update PO status
-    const newStatus: POStatus = allFullyReceived ? 'Received' : 'Partial'
-    await (supabase.from('purchase_orders') as any)
-      .update({ status: newStatus, updated_date: new Date().toISOString() })
-      .eq('id', poId)
-
-    return { success: true, status: newStatus }
+    const { error } = await supabase.from('purchase_orders').delete().eq('id', poId);
+    if (error) throw error;
   },
 
-  // Update a single PO item
-  updateItem: async (itemId: number, updates: { quantity?: number; unit_price?: number; discount_percent?: number }) => {
-    const payload: any = { ...updates }
-    if (updates.quantity !== undefined && updates.unit_price !== undefined) {
-      const discount = updates.discount_percent ?? 0
-      payload.total_amount = updates.quantity * updates.unit_price * (1 - discount / 100)
-    }
-
-    const { data, error } = await (supabase.from('purchase_order_items') as any)
-      .update(payload)
-      .eq('id', itemId)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
+  // Backward compatibility alias
+  deletePurchaseOrder: async (id: number) => {
+    return purchaseOrdersApi.deletePO(id);
   },
 
-  // Delete a single PO item
-  deleteItem: async (itemId: number) => {
+  // Delete single PO line item
+  deletePOItem: async (itemId: number) => {
     const { error } = await supabase
       .from('purchase_order_items')
       .delete()
-      .eq('id', itemId)
-
-    if (error) throw error
+      .eq('id', itemId);
+    if (error) throw error;
   }
-}
+};
+
+export default purchaseOrdersApi;

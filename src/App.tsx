@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -26,25 +27,27 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            
-            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="parts" element={<Parts />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="projects/:id" element={<ProjectDetails />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="part-usage-logs" element={<PartUsageLogs />} />
-              <Route path="stock-movement" element={<PartInOut />} />
-            </Route>
-          </Routes>
-        </AuthProvider>
-      </Router>
+      <AuthProvider>
+        <ToastProvider>
+          <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              
+              <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="parts" element={<Parts />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="projects/:id" element={<ProjectDetails />} />
+                <Route path="purchase-orders" element={<PurchaseOrders />} />
+                <Route path="suppliers" element={<Suppliers />} />
+                <Route path="part-usage-logs" element={<PartUsageLogs />} />
+                <Route path="stock-movement" element={<PartInOut />} />
+              </Route>
+            </Routes>
+          </Router>
+        </ToastProvider>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }
