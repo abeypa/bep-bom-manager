@@ -38,8 +38,6 @@ export default function AppLayout() {
     return <div className="flex h-screen items-center justify-center">Loading permissions...</div>;
   }
 
-  const isAbey = user?.email === 'abey.thomas@bepindia.com';
-
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -80,7 +78,7 @@ export default function AppLayout() {
           </NavLink>
 
           {/* Admin Only */}
-          {(isAdmin || isAbey) && (
+          {isAdmin && (
             <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>
               <ShieldCheck className="w-5 h-5" />
               Admin Panel

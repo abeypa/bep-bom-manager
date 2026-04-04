@@ -5,6 +5,7 @@ export type UserRole = 'admin' | 'user';
 
 export function useRole() {
   const [role, setRole] = useState<UserRole | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,8 +14,11 @@ export function useRole() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           setRole(null);
+          setUserEmail(null);
           return;
         }
+
+        setUserEmail(user.email ?? null);
 
         const { data } = await supabase
           .from('profiles')
@@ -41,8 +45,8 @@ export function useRole() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || userEmail === 'abey.thomas@bepindia.com';
   const isUser = role === 'user';
 
-  return { role, isAdmin, isUser, loading };
+  return { role, isAdmin, isUser, loading, userEmail };
 }
