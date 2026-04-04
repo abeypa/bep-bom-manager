@@ -27,6 +27,7 @@ import ProjectAddPartModal from '@/components/projects/ProjectAddPartModal'
 import ProjectEditPartModal from '@/components/projects/ProjectEditPartModal'
 import CreatePOFromBOMModal from '@/components/projects/CreatePOFromBOMModal'
 import { purchaseOrdersApi } from '@/api/purchase-orders'
+import { useRole } from '@/hooks/useRole'
 
 const resolvePartType = (p: any) => {
   if (p.mechanical_manufacture_id) return { type: 'MECH-MFG', id: p.mechanical_manufacture_id, ref: p.mechanical_manufacture };
@@ -40,6 +41,7 @@ const resolvePartType = (p: any) => {
 const ProjectDetails = () => {
   const { id } = useParams()
   const projectId = parseInt(id!)
+  const { isAdmin } = useRole()
   const queryClient = useQueryClient()
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false)
   const [isAddPartModalOpen, setIsAddPartModalOpen] = useState(false)
@@ -458,12 +460,14 @@ const ProjectDetails = () => {
                       >
                         <Settings className="h-3.5 w-3.5 mr-1" /> Edit
                       </button>
-                      <button 
-                        onClick={() => handleDeleteSection(section.id)}
-                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
-                      </button>
+                      {isAdmin && (
+                        <button 
+                          onClick={() => handleDeleteSection(section.id)}
+                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                   
@@ -543,22 +547,24 @@ const ProjectDetails = () => {
                                   >
                                     <Edit2 className="h-3.5 w-3.5" />
                                   </button>
-                                  <button 
-                                    onClick={async () => {
-                                      if (confirm('Are you sure you want to remove this part from the BOM?')) {
-                                        try {
-                                          await projectsApi.removePartFromSection(p.id);
-                                          queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-                                        } catch (error) {
-                                          console.error('Error removing part:', error);
-                                          alert('Failed to remove part');
+                                  {isAdmin && (
+                                    <button 
+                                      onClick={async () => {
+                                        if (confirm('Are you sure you want to remove this part from the BOM?')) {
+                                          try {
+                                            await projectsApi.removePartFromSection(p.id);
+                                            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                                          } catch (error) {
+                                            console.error('Error removing part:', error);
+                                            alert('Failed to remove part');
+                                          }
                                         }
-                                      }
-                                    }}
-                                    className="text-red-400 hover:text-red-600 transition-colors"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
+                                      }}
+                                      className="text-red-400 hover:text-red-600 transition-colors"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

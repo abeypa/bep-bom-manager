@@ -4,8 +4,10 @@ import { projectsApi, Project } from '@/api/projects'
 import { Search, Plus, Edit, Trash2, Layout, Calendar, User, Briefcase } from 'lucide-react'
 import ProjectFormModal from '@/components/projects/ProjectFormModal'
 import { Link } from 'react-router-dom'
+import { useRole } from '@/hooks/useRole'
 
 const Projects = () => {
+  const { isAdmin } = useRole()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
@@ -228,12 +230,14 @@ const Projects = () => {
                   >
                     <Edit className="h-4 w-4" />
                   </button>
-                  <button 
-                    onClick={() => handleDelete(project.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {isAdmin && (
+                    <button 
+                      onClick={() => handleDelete(project.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit, History, ArrowUpDown, FileText, Package, TrendingUp, TrendingDown, Clock, ShieldCheck, Box } from 'lucide-react';
+import { X, Edit, History, ArrowUpDown, FileText, Package, TrendingUp, TrendingDown, Clock, ShieldCheck, Box, Trash2 } from 'lucide-react';
 import { priceHistoryApi } from '../../api/price-history';
 import { stockMovementsApi } from '../../api/stock-movements';
+import { useRole } from '../../hooks/useRole';
+import { partsApi } from '../../api/parts';
+import { useToast } from '../../context/ToastContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PartDetailModalProps {
   isOpen: boolean;
@@ -11,10 +15,26 @@ interface PartDetailModalProps {
 }
 
 export default function PartDetailModal({ isOpen, onClose, part, category }: PartDetailModalProps) {
+  const { isAdmin } = useRole();
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'details' | 'history' | 'stock' | 'files'>('details');
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [stockHistory, setStockHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const handleDecommission = async () => {
+    if (!window.confirm(`CRITICAL ACTION: Are you sure you want to decommission ${part.part_number}? This will permanently remove it from the master registry.`)) return;
+
+    try {
+      await partsApi.deletePart(category as any, part.id);
+      showToast('success', 'Asset decommissioned from registry');
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      onClose();
+    } catch (err) {
+      showToast('error', 'Failed to decommission asset');
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !part) return;
@@ -311,6 +331,15 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
                 <div className="px-5 py-2 bg-gray-50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest border border-gray-100">
                     ID: {part.id}
                 </div>
+                {isAdmin && (
+                  <button 
+                    onClick={handleDecommission}
+                    className="px-5 py-2 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-100 hover:bg-red-600 hover:text-white transition-all flex items-center gap-2"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Decommission Asset
+                  </button>
+                )}
                 <div className="px-5 py-2 bg-gray-50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest border border-gray-100">
                     Audit: Verified
                 </div>

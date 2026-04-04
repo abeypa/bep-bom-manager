@@ -7,13 +7,16 @@ import {
   ShoppingCart, 
   ArrowUpDown, 
   LogOut,
-  ShieldCheck 
+  ShieldCheck,
+  Truck 
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';        // ← Fixed path
 import { useRole } from '../../hooks/useRole';        // ← Fixed path
+import { useAuth } from '../../context/AuthContext';
 
 export default function AppLayout() {
   const { isAdmin, loading } = useRole();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -22,6 +25,8 @@ export default function AppLayout() {
   if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading permissions...</div>;
   }
+
+  const isAbey = user?.email === 'abey.thomas@bepindia.com';
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -57,8 +62,13 @@ export default function AppLayout() {
             Stock In / Out
           </NavLink>
 
+          <NavLink to="/suppliers" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>
+            <Truck className="w-5 h-5" />
+            Suppliers
+          </NavLink>
+
           {/* Admin Only */}
-          {isAdmin && (
+          {(isAdmin || isAbey) && (
             <NavLink to="/admin" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>
               <ShieldCheck className="w-5 h-5" />
               Admin Panel
