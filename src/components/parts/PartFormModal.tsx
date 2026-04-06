@@ -39,7 +39,8 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
     pdf_path: null,
     pdf2_path: null,
     pdf3_path: null,
-    cad_file_url: null
+    cad_file_url: null,
+    price_revision_date: new Date().toISOString().split('T')[0]
   })
 
   const { data: suppliers } = useQuery({
@@ -53,7 +54,8 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
       setFormData({
         ...partToEdit,
         currency: partToEdit.currency || 'INR',
-        discount_percent: partToEdit.discount_percent || 0
+        discount_percent: partToEdit.discount_percent || 0,
+        price_revision_date: new Date().toISOString().split('T')[0]
       })
     } else {
       setFormData({
@@ -78,7 +80,8 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
         pdf_path: null,
         pdf2_path: null,
         pdf3_path: null,
-        cad_file_url: null
+        cad_file_url: null,
+        price_revision_date: new Date().toISOString().split('T')[0]
       })
     }
   }, [partToEdit, isOpen])
@@ -269,7 +272,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Inventory & Pricing</h4>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Stock Level</label>
                 <input
@@ -313,6 +316,16 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   value={formData.discount_percent || 0}
                   onChange={handleChange}
                   className="block w-full bg-transparent text-sm font-black tabular-nums outline-none text-emerald-600"
+                />
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-3xl border border-emerald-100">
+                <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Price Quote Date</label>
+                <input
+                  type="date"
+                  name="price_revision_date"
+                  value={formData.price_revision_date || new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  className="block w-full bg-transparent text-sm font-black tabular-nums outline-none text-emerald-900"
                 />
               </div>
             </div>

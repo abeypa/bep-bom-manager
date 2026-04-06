@@ -95,6 +95,22 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
     }
   };
 
+  const handleDeletePriceEntry = async (id: string) => {
+    if (!window.confirm('Delete this historical entry? This will impact the price evolution timeline.')) return;
+    
+    try {
+      setLoading(true);
+      await priceHistoryApi.deleteEntry(id);
+      showToast('success', 'Timeline entry removed');
+      const historyData = await priceHistoryApi.getHistory(category, part.id);
+      setPriceHistory(historyData);
+    } catch (err) {
+      showToast('error', 'Failed to remove entry');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen || !part) return null;
 
   const getMovementIcon = (type: string) => {
@@ -345,8 +361,21 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
                                         <span className="px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[8px] font-black text-gray-400 uppercase tracking-widest">{h.change_reason?.replace('_', ' ')}</span>
                                     </td>
                                     <td className="px-8 py-6 text-right">
-                                        <div className="text-[10px] font-bold text-gray-900">{h.changed_by?.split('@')[0]}</div>
-                                        <div className="text-[8px] text-gray-300 font-bold uppercase tracking-widest mt-1 px-1">{h.changed_by?.split('@')[1]}</div>
+                                        <div className="flex items-center justify-end gap-4">
+                                          <div>
+                                            <div className="text-[10px] font-bold text-gray-900">{h.changed_by?.split('@')[0]}</div>
+                                            <div className="text-[8px] text-gray-300 font-bold uppercase tracking-widest mt-1 px-1">{h.changed_by?.split('@')[1]}</div>
+                                          </div>
+                                          {isAdmin && (
+                                            <button 
+                                              onClick={() => handleDeletePriceEntry(h.id)}
+                                              className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                              title="Delete Entry"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

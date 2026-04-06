@@ -69,6 +69,18 @@ export const priceHistoryApi = {
     if (error) throw error;
     return data;
   },
+
+  /**
+   * Delete a specific price history entry
+   */
+  deleteEntry: async (id: string) => {
+    const { error } = await supabase
+      .from('part_price_history')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
 };
 
 export default priceHistoryApi;

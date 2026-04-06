@@ -14,11 +14,12 @@ const logPriceHistory = async (
   partNumber: string,
   oldData: any,
   newData: any,
-  reason: string = 'manual_edit'
+  reason: string = 'manual_edit',
+  changedAt: string | null = null
 ) => {
   const oldPrice = oldData?.base_price;
   const newPrice = newData?.base_price;
-  const oldCurrency = oldData?.currency;
+  const oldCurrency = oldData?.currency || 'INR';
   const newCurrency = newData?.currency || 'INR';
   const oldDiscount = oldData?.discount_percent;
   const newDiscount = newData?.discount_percent;
@@ -40,6 +41,7 @@ const logPriceHistory = async (
       old_discount_percent: oldDiscount,
       new_discount_percent: newDiscount,
       change_reason: reason,
+      changed_at: changedAt || new Date().toISOString(),
       changed_by: (await supabase.auth.getUser()).data.user?.email || 'system',
     });
   }
@@ -93,10 +95,15 @@ export const partsApi = {
       .eq('id', id)
       .single();
 
+    // Extract optional price revision date for logging
+    const revisionDate = updates.price_revision_date;
+    const cleanUpdates = { ...updates };
+    delete cleanUpdates.price_revision_date;
+
     // 2. Perform the update
     const { data: updated, error } = await (supabase as any)
       .from(category)
-      .update(updates)
+      .update(cleanUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -105,7 +112,7 @@ export const partsApi = {
 
     // 3. Log price history if price fields changed
     if (current && updated) {
-      await logPriceHistory(category, id, current.part_number, current, updated, 'manual_edit');
+      await logPriceHistory(category, id, current.part_number, current, updated, 'manual_edit', revisionDate);
     }
 
     return updated;
