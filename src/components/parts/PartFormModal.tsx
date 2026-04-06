@@ -131,6 +131,9 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
 
     // Remove UI-only fields that are not in the database schema
     delete cleaned.notes
+    delete cleaned.suppliers
+    delete cleaned.display_type
+    delete cleaned.category
 
     return cleaned
   }
