@@ -16,6 +16,7 @@ import PartInOut from './pages/PartInOut';
 import Suppliers from './pages/Suppliers';
 import PartUsageLogs from './pages/PartUsageLogs';
 import Admin from './pages/Admin';
+import ProcurementDashboard from './pages/ProcurementDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,12 @@ function App() {
                 <Route path="/stock-movement" element={
                   <RoleGuard>
                     <PartInOut />
+                  </RoleGuard>
+                } />
+                
+                <Route path="/procurement" element={
+                  <RoleGuard>
+                    <ProcurementDashboard />
                   </RoleGuard>
                 } />
 

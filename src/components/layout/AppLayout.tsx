@@ -8,7 +8,8 @@ import {
   ArrowUpDown, 
   LogOut,
   ShieldCheck,
-  Truck 
+  Truck,
+  Factory 
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';        // ← Fixed path
 import { useRole } from '../../hooks/useRole';        // ← Fixed path
@@ -65,6 +66,11 @@ export default function AppLayout() {
           <NavLink to="/purchase-orders" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>
             <ShoppingCart className="w-5 h-5" />
             Purchase Orders
+          </NavLink>
+
+          <NavLink to="/procurement" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>
+            <Factory className="w-5 h-5" />
+            Procurement
           </NavLink>
 
           <NavLink to="/stock-movement" className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-colors ${isActive ? 'bg-black text-white' : 'hover:bg-gray-100'}`}>

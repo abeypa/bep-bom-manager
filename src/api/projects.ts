@@ -104,10 +104,36 @@ export const projectsApi = {
 
   // Task 4: Copy section from one project to another
   copySection: async (sectionId: number, targetProjectId: number) => {
-    // 1. Get the source section details
+    // 1. Get the source section details (Excluding many columns to avoid schema cache issues)
     const { data: section, error: secError } = await (supabase as any)
       .from('project_sections')
-      .select('*, parts:project_parts(*)')
+      .select(`
+        id, 
+        section_name, 
+        description, 
+        status, 
+        estimated_cost, 
+        sort_order,
+        image_path,
+        drawing_path,
+        datasheet_path,
+        parts:project_parts(
+          id,
+          mechanical_manufacture_id,
+          mechanical_bought_out_part_id,
+          electrical_manufacture_id,
+          electrical_bought_out_part_id,
+          pneumatic_bought_out_part_id,
+          quantity,
+          unit_price,
+          currency,
+          discount_percent,
+          base_price_at_assignment,
+          supplier_name_at_assignment,
+          reference_designator,
+          notes
+        )
+      `)
       .eq('id', sectionId)
       .single();
 
@@ -115,15 +141,13 @@ export const projectsApi = {
     if (!section) throw new Error('Section not found');
 
     // 2. Create a new section in the target project
-    const newSectionPayload: ProjectSectionInsert = {
+    const newSectionPayload = {
       project_id: targetProjectId,
       section_name: `${section.section_name} (Copy)`,
       description: section.description,
-      status: 'planning', // Reset status for the copy
+      status: 'planning',
       estimated_cost: section.estimated_cost,
-      actual_cost: 0, // Reset actual cost
-      start_date: null,
-      target_completion_date: null,
+      actual_cost: 0,
       sort_order: (section.sort_order || 0) + 1,
       image_path: section.image_path,
       drawing_path: section.drawing_path,
@@ -140,8 +164,9 @@ export const projectsApi = {
     if (!newSection) throw new Error('Failed to create new section');
 
     // 3. Copy all parts associated with the section
-    if (section.parts && section.parts.length > 0) {
-      const partsToCopy = section.parts.map((p: any) => ({
+    const rawParts = (section as any).parts || [];
+    if (rawParts.length > 0) {
+      const partsToCopy = rawParts.map((p: any) => ({
         project_section_id: (newSection as any).id,
         mechanical_manufacture_id: p.mechanical_manufacture_id,
         mechanical_bought_out_part_id: p.mechanical_bought_out_part_id,
@@ -155,9 +180,7 @@ export const projectsApi = {
         base_price_at_assignment: p.base_price_at_assignment,
         supplier_name_at_assignment: p.supplier_name_at_assignment,
         reference_designator: p.reference_designator,
-        notes: p.notes,
-        part_number: p.part_number,
-        part_table_name: p.part_table_name
+        notes: p.notes
       }));
 
       const { error: insPartsError } = await (supabase as any)

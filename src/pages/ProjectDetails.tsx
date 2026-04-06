@@ -739,6 +739,7 @@ const ProjectDetails = () => {
           }}
           sectionId={sectionToCopy.id}
           sectionName={sectionToCopy.name}
+          currentProjectId={projectId}
         />
       )}
     </div>

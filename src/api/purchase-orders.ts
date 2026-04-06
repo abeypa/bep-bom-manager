@@ -273,6 +273,38 @@ export const purchaseOrdersApi = {
     return purchaseOrdersApi.deletePO(id);
   },
 
+  getPendingParts: async () => {
+    // This fetches all project_parts joined with their sections and projects
+    // to identify items that need to be purchased
+    const { data: projectParts, error } = await supabase
+      .from('project_parts')
+      .select(`
+        *,
+        section:project_sections (
+          id,
+          section_name,
+          project:projects (id, project_name)
+        ),
+        mechanical_manufacture (*, suppliers(name)),
+        mechanical_bought_out (*, suppliers(name)),
+        electrical_manufacture (*, suppliers(name)),
+        electrical_bought_out (*, suppliers(name)),
+        pneumatic_bought_out (*, suppliers(name))
+      `);
+
+    if (error) throw error;
+
+    // Also get all IDs that are already in a PO to filter them out
+    const { data: orderedItems } = await supabase
+      .from('purchase_order_items')
+      .select('project_part_id')
+      .not('project_part_id', 'is', null);
+
+    const orderedIds = new Set((orderedItems as any[])?.map(i => i.project_part_id));
+
+    return ((projectParts as any[]) || []).filter(p => !orderedIds.has(p.id));
+  },
+
   // Delete single PO line item
   deletePOItem: async (itemId: number) => {
     const { error } = await supabase

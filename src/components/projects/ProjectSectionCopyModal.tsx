@@ -9,9 +9,10 @@ interface ProjectSectionCopyModalProps {
   onClose: () => void;
   sectionId: number;
   sectionName: string;
+  currentProjectId: number;
 }
 
-const ProjectSectionCopyModal = ({ isOpen, onClose, sectionId, sectionName }: ProjectSectionCopyModalProps) => {
+const ProjectSectionCopyModal = ({ isOpen, onClose, sectionId, sectionName, currentProjectId }: ProjectSectionCopyModalProps) => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,8 +48,10 @@ const ProjectSectionCopyModal = ({ isOpen, onClose, sectionId, sectionName }: Pr
   if (!isOpen) return null;
 
   const filteredProjects = projects?.filter((p: any) => 
-    p.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.project_number.toLowerCase().includes(searchTerm.toLowerCase())
+    p.id !== currentProjectId && (
+      p.project_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.project_number.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   ) || [];
 
   return (
