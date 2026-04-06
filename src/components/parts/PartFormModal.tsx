@@ -331,7 +331,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   <FileUpload
                     existingUrl={formData.image_path}
                     onUpload={(url: string) => handleFileUpload('image_path', url)}
-                    bucket="part-images"
+                    bucket="bom_assets"
                     label="Image"
                   />
                </div>
@@ -344,7 +344,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   <FileUpload
                     existingUrl={formData.cad_file_url}
                     onUpload={(url: string) => handleFileUpload('cad_file_url', url)}
-                    bucket="cad-files"
+                    bucket="bom_assets"
                     label="Model"
                   />
                </div>
@@ -357,7 +357,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   <FileUpload
                     existingUrl={formData.pdf_path}
                     onUpload={(url: string) => handleFileUpload('pdf_path', url)}
-                    bucket="pdf-files"
+                    bucket="bom_assets"
                     label="Datasheet"
                   />
                </div>
@@ -370,7 +370,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   <FileUpload
                     existingUrl={formData.pdf2_path}
                     onUpload={(url: string) => handleFileUpload('pdf2_path', url)}
-                    bucket="pdf-files"
+                    bucket="bom_assets"
                     label="Certificates"
                   />
                </div>
@@ -383,7 +383,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   <FileUpload
                     existingUrl={formData.pdf3_path}
                     onUpload={(url: any) => handleFileUpload('pdf3_path', url)}
-                    bucket="pdf-files"
+                    bucket="bom_assets"
                     label="Drawings"
                   />
                </div>

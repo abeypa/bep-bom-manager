@@ -199,21 +199,21 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
               <div className="grid grid-cols-1 gap-4">
                 <FileUpload
                   label="Section Image"
-                  bucket="section-assets"
+                  bucket="bom_assets"
                   existingUrl={formData.image_path}
                   onUpload={(url) => setFormData(prev => ({ ...prev, image_path: url }))}
                 />
                 
                 <FileUpload
                   label="Technical Drawing"
-                  bucket="section-assets"
+                  bucket="bom_assets"
                   existingUrl={formData.drawing_path}
                   onUpload={(url) => setFormData(prev => ({ ...prev, drawing_path: url }))}
                 />
                 
                 <FileUpload
                   label="Data Sheet"
-                  bucket="section-assets"
+                  bucket="bom_assets"
                   existingUrl={formData.datasheet_path}
                   onUpload={(url) => setFormData(prev => ({ ...prev, datasheet_path: url }))}
                 />

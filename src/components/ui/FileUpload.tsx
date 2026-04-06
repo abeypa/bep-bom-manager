@@ -12,7 +12,7 @@ interface FileUploadProps {
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
-  bucket = 'part-images',
+  bucket = 'bom_assets',
   onUpload,
   existingUrl,
   label = 'Upload File',
