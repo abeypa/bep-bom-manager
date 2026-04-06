@@ -52,21 +52,28 @@ export const exportUtils = {
 
   // PO Export → CSV
   exportPOToCSV: (po: any) => {
+    // Extract all unique project numbers across all items
+    const allUniqueProjectNumbers = new Set<string>();
+    (po.purchase_order_items || []).forEach((item: any) => {
+      const prjNo = item.project_part?.project_section?.project?.project_number;
+      if (prjNo) allUniqueProjectNumbers.add(prjNo);
+    });
+
     let csv = `Purchase Order Details\n`;
     csv += `PO Number,${po.po_number}\n`;
+    csv += `Project Numbers,"${Array.from(allUniqueProjectNumbers).join(', ')}"\n`;
     csv += `Supplier,"${po.suppliers?.name || '-'}"\n`;
     csv += `Date,${new Date(po.created_date).toLocaleDateString('en-IN')}\n`;
     csv += `Status,${po.status}\n\n`;
     
     // Header for items
-    csv += 'Part Number,Description,Project NO,Qty,Unit Price,Discount %,Total\n';
+    csv += 'Part Number,Description,Qty,Unit Price,Discount %,Total\n';
 
-    // Group items by part_number to consolidate quantities and collect project numbers
+    // Group items by part_number to consolidate quantities
     const groupedItems = new Map<string, any>();
 
     (po.purchase_order_items || []).forEach((item: any) => {
       const pn = item.part_number || 'N/A';
-      const prjNo = item.project_part?.project_section?.project?.project_number;
 
       if (!groupedItems.has(pn)) {
         groupedItems.set(pn, {
@@ -74,16 +81,12 @@ export const exportUtils = {
           description: item.description,
           unit_price: item.unit_price || 0,
           discount_percent: item.discount_percent || 0,
-          quantity: 0,
-          projectNumbers: new Set<string>()
+          quantity: 0
         });
       }
 
       const grp = groupedItems.get(pn);
       grp.quantity += (item.quantity || 0);
-      if (prjNo) {
-        grp.projectNumbers.add(prjNo);
-      }
     });
 
     Array.from(groupedItems.values()).forEach((grp: any) => {
@@ -92,13 +95,7 @@ export const exportUtils = {
       // Escape descriptions that might contain commas
       const escapedDesc = (grp.description || '-').replace(/"/g, '""');
       
-      // Comma-separated project numbers
-      const projectNos = grp.projectNumbers.size > 0 
-        ? Array.from(grp.projectNumbers).join(', ') 
-        : '-';
-      const escapedProjectNos = projectNos.replace(/"/g, '""');
-
-      csv += `"${grp.part_number}","${escapedDesc}","${escapedProjectNos}",${grp.quantity},${grp.unit_price},${grp.discount_percent},${total.toFixed(2)}\n`;
+      csv += `"${grp.part_number}","${escapedDesc}",${grp.quantity},${grp.unit_price},${grp.discount_percent},${total.toFixed(2)}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
