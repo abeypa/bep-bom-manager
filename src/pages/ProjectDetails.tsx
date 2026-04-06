@@ -61,6 +61,7 @@ const ProjectDetails = () => {
   const [activeTab, setActiveTab] = useState<'bom' | 'pos'>('bom')
   const [isCopySectionModalOpen, setIsCopySectionModalOpen] = useState(false)
   const [sectionToCopy, setSectionToCopy] = useState<{id: number, name: string} | null>(null)
+  const [defaultMainSectionIdForModal, setDefaultMainSectionIdForModal] = useState<number | undefined>(undefined)
   const { showToast } = useToast()
   
   const togglePartSelection = (partId: number) => {
@@ -88,13 +89,15 @@ const ProjectDetails = () => {
     enabled: !!projectId
   })
 
-  const openAddSection = () => {
+  const openAddSection = (mainSectionId?: number) => {
     setSectionToEdit(null)
+    setDefaultMainSectionIdForModal(typeof mainSectionId === 'number' ? mainSectionId : undefined)
     setIsAddSectionModalOpen(true)
   }
 
   const openEditSection = (section: any) => {
     setSectionToEdit(section)
+    setDefaultMainSectionIdForModal(undefined)
     setIsAddSectionModalOpen(true)
   }
 
@@ -441,7 +444,7 @@ const ProjectDetails = () => {
                   Cluster Compartments
                 </h2>
                 <button 
-                  onClick={openAddSection}
+                  onClick={() => openAddSection()}
                   className="group relative inline-flex items-center px-4 py-2 bg-primary-600 text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-100 transition-all active:scale-95"
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
@@ -457,7 +460,7 @@ const ProjectDetails = () => {
                 Break down your project into manageable BOM sections like 'Main Frame', 'Electrical Panel', etc.
               </p>
               <button 
-                onClick={openAddSection}
+                onClick={() => openAddSection()}
                 className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 transition-all"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -474,6 +477,14 @@ const ProjectDetails = () => {
                        <Layers className="h-4 w-4 mr-3 text-primary-400" />
                        {mainSection.name}
                        
+                       <button
+                          title="Add Compartment"
+                          onClick={() => openAddSection(mainSection.id)}
+                          className="ml-4 text-gray-300 hover:text-white transition-opacity"
+                       >
+                         <PlusCircle className="h-4 w-4" />
+                       </button>
+
                        <button
                           title="Delete Main Section"
                           onClick={() => {
@@ -767,6 +778,8 @@ const ProjectDetails = () => {
         isOpen={isAddSectionModalOpen}
         onClose={() => setIsAddSectionModalOpen(false)}
         projectId={projectId}
+        mainSections={project?.main_sections || []}
+        defaultMainSectionId={defaultMainSectionIdForModal}
         sectionToEdit={sectionToEdit}
         onDelete={handleDeleteSection}
       />
