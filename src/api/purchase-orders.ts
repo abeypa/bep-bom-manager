@@ -49,21 +49,49 @@ export const purchaseOrdersApi = {
         *,
         suppliers (*),
         project:projects (project_name),
-        purchase_order_items (
-          *,
-          project_part:project_parts (
+        purchase_order_items (*)
+      `)
+      .eq('id', poId)
+      .single();
+    if (error) throw error;
+    
+    let po = data as any;
+
+    // Fetch project numbers for the items safely
+    if (po && po.purchase_order_items && po.purchase_order_items.length > 0) {
+      const projectPartIds = po.purchase_order_items
+        .map((item: any) => item.project_part_id)
+        .filter(Boolean);
+        
+      if (projectPartIds.length > 0) {
+        const { data: partsData } = await supabase
+          .from('project_parts')
+          .select(`
+            id,
             project_section:project_sections (
               project:projects (
                 project_number
               )
             )
-          )
-        )
-      `)
-      .eq('id', poId)
-      .single();
-    if (error) throw error;
-    return data;
+          `)
+          .in('id', projectPartIds);
+          
+        if (partsData) {
+          const partMap = new Map(partsData.map((p: any) => [p.id, p]));
+          po.purchase_order_items = po.purchase_order_items.map((item: any) => {
+            if (item.project_part_id && partMap.has(item.project_part_id)) {
+              return {
+                ...item,
+                project_part: partMap.get(item.project_part_id)
+              };
+            }
+            return item;
+          });
+        }
+      }
+    }
+
+    return po;
   },
 
   getPurchaseOrder: async (id: number) => {
