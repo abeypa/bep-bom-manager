@@ -8,8 +8,8 @@ interface FileUploadProps {
   partType?: string;
   partId?: number;
   category?: FileCategory;
-  onUploadComplete?: (filePath: string) => void;
-  onUpload?: (filePath: string) => void;
+  onUploadComplete?: (filePath: string, publicUrl: string) => void;
+  onUpload?: (filePath: string, publicUrl: string) => void;
   existingUrl?: string | null;
   bucket?: string;
   label?: string;
@@ -21,6 +21,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   category,
   onUploadComplete,
   onUpload,
+  bucket,
   label = 'Upload File',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,9 +30,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const storage = useStorage({
     onUploadComplete: (result) => {
-      if (result.success && result.filePath) {
-        onUploadComplete?.(result.filePath);
-        onUpload?.(result.filePath);
+      if (result.success && result.filePath && result.publicUrl) {
+        onUploadComplete?.(result.filePath, result.publicUrl);
+        onUpload?.(result.filePath, result.publicUrl);
         setSelectedFile(null);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -57,7 +58,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       return;
     }
 
-    await storage.upload(selectedFile, partType || 'unknown', partId || 0, category || 'documentation' as FileCategory);
+    await storage.upload(
+      selectedFile, 
+      partType || 'unknown', 
+      partId || 0, 
+      category || 'documentation' as FileCategory,
+      bucket
+    );
   };
 
   const handleCancel = () => {

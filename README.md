@@ -2,21 +2,40 @@
 
 A Bill of Materials (BOM) management system for tracking components, assemblies, and inventory.
 
+## Quick Start
+
+```bash
+npm install
+npm run dev
+```
+
 ## Features
 
-- **Component Management**: Track individual components with metadata
-- **Assembly Tracking**: Create and manage product assemblies
-- **Inventory Management**: Monitor stock levels and locations
-- **Supplier Integration**: Manage vendor relationships and procurement
-- **Reporting**: Generate BOM reports and analytics
+- Manual historical price entry with custom dates
+- Admin access hardening
+- Part detail view with audit trails
 
-## Tech Stack
+## Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| VITE_API_URL | Base URL for Supabase API | https://your-supabase-url |
+
+## Documentation
+
+- [API Reference](./docs/api.md)
+- [Architecture](./docs/architecture.md)
+- [Changelog](./docs/changelog.md)
+- [ADR-001](./docs/adr-001.md)
+- [AI‑Friendly Docs](./docs/llms.txt)
+
+## License
+
+MITech Stack
 
 - **Backend**: Node.js with Express
 - **Frontend**: React with TypeScript
 - **Database**: PostgreSQL with Supabase
-- **Authentication**: JWT-based auth
-- **API**: RESTful API design
 
 ## Getting Started
 
