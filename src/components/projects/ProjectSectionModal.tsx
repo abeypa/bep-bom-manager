@@ -52,7 +52,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
         datasheet_path: null
       });
     }
-  }, [sectionToEdit, isOpen, projectId]);
+  }, [sectionToEdit, isOpen, projectId, defaultMainSectionId]);
 
   const mutation = useMutation({
     mutationFn: (data: ProjectSectionInsert) => 
