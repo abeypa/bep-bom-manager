@@ -597,7 +597,7 @@ const ProjectDetails = () => {
                                 {p.quantity} {p.unit || 'pcs'}
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap text-xs font-medium text-gray-500 tabular-nums">
-                                {p.currency || '$'}{p.unit_price}
+                                {p.currency || '₹'}{p.unit_price}
                               </td>
                               <td className="px-6 py-3 whitespace-nowrap">
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${

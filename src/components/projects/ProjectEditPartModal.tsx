@@ -130,8 +130,8 @@ export const ProjectEditPartModal = ({ isOpen, onClose, projectId, projectPart }
                   className="block w-full bg-white border border-gray-100 rounded-xl py-2.5 px-3 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100"
                 >
                   <option value="INR">INR (₹)</option>
-                  <option value="USD">USD ($)</option>
                   <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
                   <option value="GBP">GBP (£)</option>
                 </select>
               </div>

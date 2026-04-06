@@ -238,8 +238,8 @@ export const ProjectAddPartModal = ({ isOpen, onClose, projectId, sectionId, sec
                   className="block w-full bg-white border border-gray-100 rounded-2xl py-3 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-gray-100 transition-all"
                 >
                   <option value="INR">Indian Rupee (₹)</option>
-                  <option value="USD">US Dollar ($)</option>
                   <option value="EUR">Euro (€)</option>
+                  <option value="USD">US Dollar ($)</option>
                   <option value="GBP">British Pound (£)</option>
                 </select>
               </div>

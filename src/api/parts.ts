@@ -105,6 +105,7 @@ export const partsApi = {
     delete (cleaned as any).projectName;
     delete (cleaned as any).sectionName;
     delete (cleaned as any).PartType;
+    delete (cleaned as any).parttype;
     
     // Audit-only fields (handled by separate tables)
     delete (cleaned as any).price_revision_date;
