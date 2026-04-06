@@ -120,7 +120,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
               <Layers className="h-5 w-5" />
             </div>
             <h3 className="text-lg font-bold text-gray-900">
-              {sectionToEdit ? 'Edit BOM Section' : 'Add BOM Section'}
+              {sectionToEdit ? 'Edit Subsection' : 'Add BOM Section / Subsection'}
             </h3>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
@@ -132,7 +132,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
           <div className="space-y-4">
             <div className="bg-primary-50/50 p-4 rounded-xl border border-primary-100/50 space-y-3">
               <div className="flex items-center justify-between">
-                 <label className="block text-xs font-black text-primary-900 uppercase tracking-widest px-0.5"><Layers className="inline w-3 h-3 mr-1 mb-0.5"/> Main Compartment Selection</label>
+                 <label className="block text-xs font-black text-primary-900 uppercase tracking-widest px-0.5"><Layers className="inline w-3 h-3 mr-1 mb-0.5"/> Parent Section</label>
                  <button 
                    type="button" 
                    onClick={() => setIsCreatingMainSection(!isCreatingMainSection)}
@@ -167,7 +167,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
             </div>
 
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Sub-Compartment / Section Name *</label>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Subsection Name *</label>
               <input
                 type="text"
                 name="section_name"
@@ -292,7 +292,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
                   className="px-6 py-2.5 text-sm font-bold text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center rounded-xl transition-all"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Section
+                  Delete Subsection
                 </button>
               )}
             </div>
@@ -310,7 +310,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], se
                 className="inline-flex justify-center items-center px-8 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {mutation.isPending ? 'Saving...' : 'Save Section'}
+                {mutation.isPending ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

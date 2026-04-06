@@ -441,14 +441,14 @@ const ProjectDetails = () => {
               <div className="flex items-center justify-between pt-4 pb-2">
                 <h2 className="text-xl font-black text-gray-900 flex items-center uppercase tracking-tight">
                   <Folder className="h-6 w-6 mr-3 text-primary-600" />
-                  Cluster Compartments
+                  Project BOM Hierarchy
                 </h2>
                 <button 
                   onClick={() => openAddSection()}
                   className="group relative inline-flex items-center px-4 py-2 bg-primary-600 text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-100 transition-all active:scale-95"
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  New Module
+                  New Section
                 </button>
               </div>
 
@@ -457,7 +457,7 @@ const ProjectDetails = () => {
               <Package className="mx-auto h-12 w-12 text-gray-300" />
               <h3 className="mt-2 text-sm font-bold text-gray-900">No BOM Sections</h3>
               <p className="mt-1 text-sm text-gray-500 max-w-xs mx-auto">
-                Break down your project into manageable BOM sections like 'Main Frame', 'Electrical Panel', etc.
+                Break down your project into manageable BOM sections like 'Mechanical Assembly', 'Electrical Panel', etc.
               </p>
               <button 
                 onClick={() => openAddSection()}
@@ -478,7 +478,7 @@ const ProjectDetails = () => {
                        {mainSection.name}
                        
                        <button
-                          title="Add Compartment"
+                          title="Add Subsection"
                           onClick={() => openAddSection(mainSection.id)}
                           className="ml-4 text-gray-300 hover:text-white transition-opacity"
                        >
@@ -506,7 +506,7 @@ const ProjectDetails = () => {
                     
                     {subsections.length === 0 ? (
                       <div className="text-center py-8 text-gray-400 text-xs font-bold uppercase tracking-widest bg-white/50 rounded-2xl border border-dashed border-gray-200">
-                        No sub-compartments mapped
+                        No subsections mapped
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -570,7 +570,7 @@ const ProjectDetails = () => {
                       <button 
                         onClick={() => openEditSection(section)}
                         className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                        title="Module Configuration"
+                        title="Edit Subsection"
                       >
                         <Settings className="h-4 w-4" />
                       </button>
@@ -578,7 +578,7 @@ const ProjectDetails = () => {
                         <button 
                           onClick={() => handleDeleteSection(section.id)}
                           className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                          title="Purge Module"
+                          title="Delete Subsection"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
