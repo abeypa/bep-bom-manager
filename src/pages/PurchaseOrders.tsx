@@ -52,7 +52,7 @@ export default function PurchaseOrders() {
 
       const poToExport = { ...fullPO, purchase_order_items: items };
       
-      exportUtils.exportPOToTXT(poToExport);
+      exportUtils.exportPOToCSV(poToExport);
       showToast('success', `PO ${po.po_number} exported with ${items.length} items!`);
     } catch (err) {
       console.error('Export error:', err);
@@ -134,7 +134,7 @@ export default function PurchaseOrders() {
                     className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 rounded-2xl"
                   >
                     <Download className="w-4 h-4" />
-                    TXT
+                    CSV
                   </button>
                 </td>
               </tr>

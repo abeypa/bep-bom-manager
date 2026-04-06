@@ -201,7 +201,20 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100 focus-within:border-gray-900 transition-all">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Internal Part Number *</label>
+                <div className="flex justify-between items-center mb-2 px-1">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Internal Part Number *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const prefix = activeTab.split('_').map(w => w[0].toUpperCase()).join('');
+                      const uniqueId = Date.now().toString().slice(-6);
+                      setFormData((prev: any) => ({ ...prev, part_number: `${prefix}-${uniqueId}` }));
+                    }}
+                    className="text-[9px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    Auto Generate
+                  </button>
+                </div>
                 <input
                   type="text"
                   name="part_number"
@@ -209,7 +222,7 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
                   value={formData.part_number || ''}
                   onChange={handleChange}
                   className="block w-full bg-transparent text-sm font-bold outline-none tabular-nums"
-                  placeholder="e.g. MECH-2024-001"
+                  placeholder="e.g. MM-123456"
                 />
               </div>
 
