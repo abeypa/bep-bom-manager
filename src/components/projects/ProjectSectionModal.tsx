@@ -8,12 +8,16 @@ interface ProjectSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: number;
+  mainSections?: any[];
   sectionToEdit?: any | null;
   onDelete?: (sectionId: number) => void;
+  defaultMainSectionId?: number;
 }
 
-const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDelete }: ProjectSectionModalProps) => {
+const ProjectSectionModal = ({ isOpen, onClose, projectId, mainSections = [], sectionToEdit, onDelete, defaultMainSectionId }: ProjectSectionModalProps) => {
   const queryClient = useQueryClient();
+  const [newMainSectionName, setNewMainSectionName] = useState('');
+  const [isCreatingMainSection, setIsCreatingMainSection] = useState(false);
   const [formData, setFormData] = useState<Partial<ProjectSectionInsert>>({
     section_name: '',
     description: '',
@@ -23,6 +27,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDele
     start_date: null,
     target_completion_date: null,
     project_id: projectId,
+    main_section_id: defaultMainSectionId || null,
     image_path: null,
     drawing_path: null,
     datasheet_path: null
@@ -41,6 +46,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDele
         start_date: null,
         target_completion_date: null,
         project_id: projectId,
+        main_section_id: defaultMainSectionId || null,
         image_path: null,
         drawing_path: null,
         datasheet_path: null
@@ -60,29 +66,45 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDele
     }
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'main_section_id' ? (value ? parseInt(value) : null) : value
+    }));
+  };
+
+  const handleSaveWithMainSection = async (data: any) => {
+    let finalMainSectionId = data.main_section_id;
+    
+    // Create new main section if requested
+    if (isCreatingMainSection && newMainSectionName.trim()) {
+      const newMain = await (projectsApi as any).createMainSection({
+        project_id: projectId,
+        name: newMainSectionName.trim()
+      });
+      finalMainSectionId = newMain.id;
+    }
+
+    const payload = { ...data, main_section_id: finalMainSectionId } as ProjectSectionInsert;
+    mutation.mutate(payload);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.section_name) return;
     
     // Prepare data with proper cleanup for Supabase
-    const payload = {
+    const dataToSave = {
       ...formData,
       project_id: projectId,
       estimated_cost: parseFloat(formData.estimated_cost?.toString() || '0'),
       actual_cost: parseFloat(formData.actual_cost?.toString() || '0'),
       start_date: formData.start_date || null,
       target_completion_date: formData.target_completion_date || null
-    } as ProjectSectionInsert;
+    };
 
-    mutation.mutate(payload);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    handleSaveWithMainSection(dataToSave);
   };
 
   if (!isOpen) return null;
@@ -108,8 +130,44 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDele
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="space-y-4">
+            <div className="bg-primary-50/50 p-4 rounded-xl border border-primary-100/50 space-y-3">
+              <div className="flex items-center justify-between">
+                 <label className="block text-xs font-black text-primary-900 uppercase tracking-widest px-0.5"><Layers className="inline w-3 h-3 mr-1 mb-0.5"/> Main Compartment Selection</label>
+                 <button 
+                   type="button" 
+                   onClick={() => setIsCreatingMainSection(!isCreatingMainSection)}
+                   className="text-[10px] font-bold text-primary-600 hover:text-primary-800 uppercase tracking-wider"
+                 >
+                   {isCreatingMainSection ? 'Cancel New' : '+ Create New'}
+                 </button>
+              </div>
+              
+              {isCreatingMainSection ? (
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Mechanical Assembly"
+                  value={newMainSectionName}
+                  onChange={e => setNewMainSectionName(e.target.value)}
+                  className="block w-full bg-white border-primary-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 transition-all shadow-sm"
+                />
+              ) : (
+                <select
+                  name="main_section_id"
+                  value={formData.main_section_id?.toString() || ''}
+                  onChange={handleChange}
+                  className="block w-full bg-white border-primary-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 transition-all shadow-sm"
+                >
+                  <option value="">Unassigned (Legacy)</option>
+                  {mainSections.map(ms => (
+                     <option key={ms.id} value={ms.id}>{ms.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div>
-              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Section Name *</label>
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Sub-Compartment / Section Name *</label>
               <input
                 type="text"
                 name="section_name"

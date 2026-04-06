@@ -54,6 +54,9 @@ export const projectsApi = {
       .from('projects')
       .select(`
         *,
+        main_sections:project_main_sections (
+          *
+        ),
         sections:project_sections (
           *,
           parts:project_parts (
@@ -227,6 +230,36 @@ export const projectsApi = {
   deleteSection: async (id: number) => {
     const { error } = await (supabase as any)
       .from('project_sections')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+  },
+
+  // === MAIN SECTIONS ===
+  createMainSection: async (section: any) => {
+    const { data, error } = await (supabase as any)
+      .from('project_main_sections')
+      .insert([section])
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  updateMainSection: async (id: number, section: any) => {
+    const { data, error } = await (supabase as any)
+      .from('project_main_sections')
+      .update(section)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  deleteMainSection: async (id: number) => {
+    const { error } = await (supabase as any)
+      .from('project_main_sections')
       .delete()
       .eq('id', id)
     if (error) throw error

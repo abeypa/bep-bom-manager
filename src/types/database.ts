@@ -254,10 +254,34 @@ export interface Database {
           updated_date?: string | null
         }
       }
+      project_main_sections: {
+        Row: {
+          id: number
+          project_id: number
+          name: string
+          order_index: number
+          created_date: string
+        }
+        Insert: {
+          id?: number
+          project_id: number
+          name: string
+          order_index?: number
+          created_date?: string
+        }
+        Update: {
+          id?: number
+          project_id?: number
+          name?: string
+          order_index?: number
+          created_date?: string
+        }
+      }
       project_sections: {
         Row: {
           id: number
           project_id: number
+          main_section_id: number | null
           section_name: string
           description: string | null
           status: string
@@ -275,6 +299,7 @@ export interface Database {
         Insert: {
           id?: number
           project_id: number
+          main_section_id?: number | null
           section_name: string
           description?: string | null
           status?: string
@@ -292,6 +317,7 @@ export interface Database {
         Update: {
           id?: number
           project_id?: number
+          main_section_id?: number | null
           section_name?: string
           description?: string | null
           status?: string

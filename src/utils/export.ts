@@ -24,19 +24,44 @@ export const exportUtils = {
   },
 
   // Full Project BOM → TXT
-  exportProjectBOMToTXT: (projectName: string, sections: any[]) => {
+  exportProjectBOMToTXT: (projectName: string, sections: any[], mainSections: any[] = []) => {
     let content = `Full BOM - ${projectName}\n`;
     content += `Generated on: ${new Date().toLocaleString('en-IN')}\n\n`;
 
-    sections.forEach((section: any) => {
-      content += `=== SECTION: ${section.section_name} ===\n`;
-      const parts = section.project_parts || [];
-      parts.forEach((p: any) => {
-        const unitPrice = p.unit_price || 0;
-        const quantity = p.quantity || 0;
-        const discount = p.discount_percent || 0;
-        const total = unitPrice * quantity * (1 - discount / 100);
-        content += `${p.part_number || '-'}\t${p.description || '-'}\t${quantity}\t₹${unitPrice}\t${discount}%\t₹${total.toFixed(2)}\n`;
+    const groupedSections = new Map<string, any[]>();
+    
+    // Fallback unassigned sections to 'Unassigned Legacy Sections'
+    sections.forEach(sec => {
+      const parentId = sec.main_section_id;
+      const mainSec = mainSections.find(m => m.id === parentId);
+      const groupName = mainSec ? mainSec.name : 'Unassigned Legacy Sections';
+      
+      if (!groupedSections.has(groupName)) {
+        groupedSections.set(groupName, []);
+      }
+      groupedSections.get(groupName)!.push(sec);
+    });
+
+    Array.from(groupedSections.entries()).forEach(([mainSecName, subSections]) => {
+      content += `===========================================================\n`;
+      content += `MAIN SECTION: ${mainSecName.toUpperCase()}\n`;
+      content += `===========================================================\n\n`;
+      
+      subSections.forEach((section: any) => {
+        content += `--- Sub-Compartment: ${section.section_name} ---\n`;
+        const parts = section.parts || section.project_parts || [];
+        if (parts.length === 0) {
+           content += `(No parts mapped)\n\n`;
+           return;
+        }
+        parts.forEach((p: any) => {
+          const unitPrice = p.unit_price || 0;
+          const quantity = p.quantity || 0;
+          const discount = p.discount_percent || 0;
+          const total = unitPrice * quantity * (1 - discount / 100);
+          content += `${p.part_number || '-'}\t${p.description || '-'}\t${quantity}\t₹${unitPrice}\t${discount}%\t₹${total.toFixed(2)}\n`;
+        });
+        content += '\n';
       });
       content += '\n';
     });

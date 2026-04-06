@@ -184,6 +184,9 @@ const ProjectDetails = () => {
               try {
                 const combinedParts: any[] = [];
                 project.sections?.forEach((s: any) => {
+                  const mainSecInfo = project.main_sections?.find((ms: any) => ms.id === s.main_section_id);
+                  const mainSectionName = mainSecInfo ? mainSecInfo.name : 'Unassigned';
+
                   s.parts?.forEach((p: any) => {
                     const type = resolvePartType(p);
                     combinedParts.push({
@@ -195,6 +198,7 @@ const ProjectDetails = () => {
                       DiscountPercent: p.discount_percent,
                       Currency: p.currency,
                       projectName: project.project_name,
+                      mainSectionName: mainSectionName,
                       sectionName: s.section_name
                     });
                   });
@@ -445,7 +449,7 @@ const ProjectDetails = () => {
                 </button>
               </div>
 
-          {!project.sections || project.sections.length === 0 ? (
+          {!project.main_sections || project.main_sections.length === 0 ? (
             <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
               <Package className="mx-auto h-12 w-12 text-gray-300" />
               <h3 className="mt-2 text-sm font-bold text-gray-900">No BOM Sections</h3>
@@ -461,8 +465,41 @@ const ProjectDetails = () => {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {project.sections.map((section: any) => (
+            <div className="space-y-12">
+              {project.main_sections.map((mainSection: any) => {
+                const subsections = project.sections?.filter((s: any) => s.main_section_id === mainSection.id) || [];
+                return (
+                  <div key={mainSection.id} className="relative bg-white/40 rounded-[3rem] p-6 sm:p-8 border-2 border-gray-100 shadow-sm pt-12">
+                    <div className="absolute top-0 left-10 -translate-y-1/2 bg-gray-900 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-lg flex items-center hover:bg-black transition-all z-10 group/main">
+                       <Layers className="h-4 w-4 mr-3 text-primary-400" />
+                       {mainSection.name}
+                       
+                       <button
+                          title="Delete Main Section"
+                          onClick={() => {
+                            if(subsections.length > 0) {
+                              alert('Cannot delete a Main Section while it contains sub-compartments.');
+                              return;
+                            }
+                            if(confirm(`Delete main section: ${mainSection.name}?`)) {
+                               projectsApi.deleteMainSection(mainSection.id).then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                               });
+                            }
+                          }}
+                          className="ml-3 text-gray-500 hover:text-red-400 opacity-0 group-hover/main:opacity-100 transition-opacity"
+                       >
+                         <Trash2 className="h-3.5 w-3.5" />
+                       </button>
+                    </div>
+                    
+                    {subsections.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400 text-xs font-bold uppercase tracking-widest bg-white/50 rounded-2xl border border-dashed border-gray-200">
+                        No sub-compartments mapped
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {subsections.map((section: any) => (
                 <div key={section.id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300">
                   <div className="p-5 sm:px-8 flex items-center justify-between bg-gradient-to-r from-gray-50/50 to-white border-b border-gray-50">
                     <div className="flex items-center space-x-4">
@@ -644,6 +681,29 @@ const ProjectDetails = () => {
                   )}
                 </div>
               ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              
+              {/* Orphaned sections (backward compatibility) */}
+              {project.sections?.filter((s: any) => !s.main_section_id).length > 0 && (
+                <div className="relative bg-red-50/50 rounded-[3rem] p-6 sm:p-8 border-2 border-red-100 shadow-sm pt-12">
+                  <div className="absolute top-0 left-10 -translate-y-1/2 bg-red-600 text-white px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] shadow-lg flex items-center z-10">
+                     <Layers className="h-4 w-4 mr-3 text-red-200" />
+                     Unassigned Legacy Sections
+                  </div>
+                  <div className="space-y-4">
+                    {project.sections.filter((s: any) => !s.main_section_id).map((section: any) => (
+                      <div key={section.id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300">
+                         {/* We duplicated the inner div block to keep it clean, but let's just show a warning */}
+                         <div className="p-6 text-center text-red-600 font-bold text-sm">Please migrate '{section.section_name}' to a Main Section.</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>
