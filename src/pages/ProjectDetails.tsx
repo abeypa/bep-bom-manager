@@ -212,12 +212,13 @@ const ProjectDetails = () => {
                 showToast('error', 'Failed to export project BOM');
               }
             }}
-            className="inline-flex items-center px-4 py-2 border border-blue-200 bg-blue-50 text-sm font-black rounded-lg text-blue-700 hover:bg-blue-100 shadow-sm transition-colors"
+            className="group relative inline-flex items-center px-5 py-2.5 bg-white border border-blue-100 text-xs font-black rounded-2xl text-blue-600 hover:bg-blue-50 shadow-sm transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-widest"
           >
+            <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
             <FileDown className="h-4 w-4 mr-2" />
             Export Project BOM (JSON)
           </button>
-          <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all shadow-sm">
+          <button className="p-2.5 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-gray-900 hover:bg-gray-50 transition-all shadow-sm">
             <Settings className="h-5 w-5" />
           </button>
         </div>
@@ -226,69 +227,76 @@ const ProjectDetails = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Project Overview */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-xs font-mono font-bold tracking-widest text-primary-600 uppercase tabular-nums">{project.project_number}</p>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status || 'planning')}`}>
-                  {project.status?.replace('_', ' ').toUpperCase()}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
+            <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-gray-50/50 to-white">
+              <div className="flex justify-between items-center mb-6">
+                <div className="px-3 py-1 bg-primary-50 border border-primary-100 rounded-full">
+                   <p className="text-[10px] font-black tracking-[0.2em] text-primary-600 uppercase tabular-nums">{project.project_number}</p>
+                </div>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-widest shadow-sm ${
+                  project.status === 'design' ? 'bg-purple-50 text-purple-600 border-purple-100' :
+                  project.status === 'completed' ? 'bg-green-50 text-green-600 border-green-100' :
+                  'bg-blue-50 text-blue-600 border-blue-100'
+                }`}>
+                  {project.status?.replace('_', ' ')}
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-2">{project.project_name}</h1>
+              <h1 className="text-3xl font-black text-gray-900 leading-none mb-3 tracking-tight uppercase group-hover:text-primary-600 transition-colors">{project.project_name}</h1>
               {project.customer && (
-                <div className="flex items-center text-sm font-medium text-gray-600">
-                  <User className="h-4 w-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <User className="h-4 w-4 mr-2 text-gray-300" />
                   {project.customer}
                 </div>
               )}
             </div>
             
-            <div className="p-6 space-y-5">
-              <div className="flex flex-col space-y-1.5">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Description</span>
-                <p className="text-sm text-gray-500 leading-relaxed italic border-l-2 border-gray-100 pl-3">
-                  {project.description || 'No description provided.'}
+            <div className="p-8 space-y-6">
+              <div className="flex flex-col space-y-2">
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Abstract</span>
+                <p className="text-sm text-gray-500 leading-relaxed italic border-l-4 border-primary-100 pl-4 py-1">
+                  {project.description || 'No specialized metadata provided.'}
                 </p>
               </div>
 
-              <div className="h-px bg-gray-100 w-full" />
+              <div className="h-px bg-gray-50 w-full" />
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col space-y-1">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" /> Start Date
+              <div className="grid grid-cols-2 gap-6">
+                <div className="flex flex-col space-y-2">
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] flex items-center">
+                    <Calendar className="h-3 w-3 mr-1.5" /> Start Line
                   </span>
-                  <span className="text-sm font-bold text-gray-900 tabular-nums">
-                    {project.start_date ? new Date(project.start_date).toLocaleDateString() : 'N/A'}
+                  <span className="text-sm font-black text-gray-900 tabular-nums">
+                    {project.start_date ? new Date(project.start_date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : 'N/A'}
                   </span>
                 </div>
-                <div className="flex flex-col space-y-1">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center">
-                    <Clock className="h-3 w-3 mr-1" /> Target Date
+                <div className="flex flex-col space-y-2">
+                  <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] flex items-center">
+                    <Clock className="h-3 w-3 mr-1.5" /> Deadline
                   </span>
-                  <span className="text-sm font-bold text-gray-900 tabular-nums">
-                    {project.target_completion_date ? new Date(project.target_completion_date).toLocaleDateString() : 'N/A'}
+                  <span className="text-sm font-black text-gray-900 tabular-nums text-red-500">
+                    {project.target_completion_date ? new Date(project.target_completion_date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : 'N/A'}
                   </span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="bg-primary-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 transform group-hover:scale-110 transition-transform">
+          
+          <div className="bg-primary-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 transform scale-150 rotate-12 group-hover:rotate-45 transition-transform duration-700">
               <Layers className="h-32 w-32" />
             </div>
             <div className="relative z-10">
-              <h3 className="text-sm font-bold text-primary-200 uppercase tracking-widest mb-4">BOM Summary</h3>
-              <div className="grid grid-cols-2 gap-6">
+              <h3 className="text-xs font-black text-primary-200 uppercase tracking-[0.3em] mb-6">BOM ARCHITECTURE</h3>
+              <div className="grid grid-cols-2 gap-8">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black tabular-nums">{(project as any).sections?.length || 0}</span>
-                  <span className="text-xs font-bold text-primary-300 uppercase mt-1">Sections</span>
+                  <span className="text-5xl font-black tabular-nums tracking-tighter">{(project as any).sections?.length || 0}</span>
+                  <span className="text-[10px] font-black text-primary-300 uppercase tracking-widest mt-2">Functional Modules</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black tabular-nums">
+                  <span className="text-5xl font-black tabular-nums tracking-tighter">
                     {(project as any).sections?.reduce((acc: number, s: any) => acc + (s.parts?.length || 0), 0)}
                   </span>
-                  <span className="text-xs font-bold text-primary-300 uppercase mt-1">Total Parts</span>
+                  <span className="text-[10px] font-black text-primary-300 uppercase tracking-widest mt-2">Active Components</span>
                 </div>
               </div>
             </div>
@@ -423,17 +431,17 @@ const ProjectDetails = () => {
 
           {activeTab === 'bom' ? (
             <>
-              <div className="flex items-center justify-between pt-2">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center">
-                  <Folder className="h-5 w-5 mr-2 text-primary-600" />
-                  BOM Sections
+              <div className="flex items-center justify-between pt-4 pb-2">
+                <h2 className="text-xl font-black text-gray-900 flex items-center uppercase tracking-tight">
+                  <Folder className="h-6 w-6 mr-3 text-primary-600" />
+                  Cluster Compartments
                 </h2>
                 <button 
                   onClick={openAddSection}
-                  className="inline-flex items-center text-sm font-bold text-primary-600 hover:text-primary-700 hover:underline transition-all"
+                  className="group relative inline-flex items-center px-4 py-2 bg-primary-600 text-[10px] font-black text-white uppercase tracking-[0.2em] rounded-xl hover:bg-primary-700 shadow-lg shadow-primary-100 transition-all active:scale-95"
                 >
-                  <PlusCircle className="h-4 w-4 mr-1.5" />
-                  New Section
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  New Module
                 </button>
               </div>
 
@@ -455,75 +463,76 @@ const ProjectDetails = () => {
           ) : (
             <div className="space-y-4">
               {project.sections.map((section: any) => (
-                <div key={section.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden group hover:border-primary-200 transition-colors">
-                  <div className="p-4 sm:px-6 flex items-center justify-between bg-gray-50 border-b border-gray-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-white rounded-lg shadow-xs group-hover:bg-primary-50 transition-colors">
-                        <FileText className="h-5 w-5 text-gray-400 group-hover:text-primary-600" />
+                <div key={section.id} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-300">
+                  <div className="p-5 sm:px-8 flex items-center justify-between bg-gradient-to-r from-gray-50/50 to-white border-b border-gray-50">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-3 bg-white rounded-2xl shadow-sm group-hover:bg-primary-50 transition-colors">
+                        <FileText className="h-6 w-6 text-gray-400 group-hover:text-primary-600" />
                       </div>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-sm font-bold text-gray-900">{section.section_name}</h4>
-                          <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${
-                            section.status === 'completed' ? 'bg-green-100 text-green-700' :
-                            section.status === 'in_progress' ? 'bg-indigo-100 text-indigo-700' :
-                            section.status === 'design' ? 'bg-blue-100 text-blue-700' :
-                            section.status === 'on_hold' ? 'bg-amber-100 text-amber-700' :
-                            'bg-gray-100 text-gray-600'
+                        <div className="flex items-center space-x-3">
+                          <h4 className="text-lg font-black text-gray-900 uppercase tracking-tight leading-none">{section.section_name}</h4>
+                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                            section.status === 'completed' ? 'bg-green-50 text-green-700 border-green-100' :
+                            section.status === 'in_progress' ? 'bg-primary-50 text-primary-700 border-primary-100' :
+                            section.status === 'design' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                            'bg-gray-50 text-gray-600 border-gray-100'
                           }`}>
                             {section.status?.replace('_', ' ')}
                           </span>
                         </div>
-                        <div className="flex items-center space-x-3 mt-0.5">
-                           <p className="text-[10px] font-medium text-gray-400">{section.parts?.length || 0} parts</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                           <div className="flex items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                             <Package className="h-3 w-3 mr-1" /> {section.parts?.length || 0} Components
+                           </div>
                            {(section.estimated_cost > 0 || section.actual_cost > 0) && (
-                             <p className="text-[10px] font-bold text-gray-500">
-                               Est: <span className="text-gray-900">${section.estimated_cost?.toFixed(0)}</span> | 
-                               Act: <span className={section.actual_cost > section.estimated_cost ? 'text-red-600' : 'text-green-600'}>${section.actual_cost?.toFixed(0)}</span>
-                             </p>
-                           )}
-                           {section.target_completion_date && (
-                             <p className="text-[10px] font-medium text-primary-600">
-                               Due: {new Date(section.target_completion_date).toLocaleDateString()}
-                             </p>
+                             <div className="flex items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                               Budget: <span className="text-gray-900 ml-1">₹ {section.estimated_cost?.toLocaleString()}</span> 
+                               <span className="mx-2 opacity-20">|</span>
+                               Burn: <span className={`ml-1 ${section.actual_cost > section.estimated_cost ? 'text-red-600' : 'text-emerald-600'}`}>₹ {section.actual_cost?.toLocaleString()}</span>
+                             </div>
                            )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center space-x-2">
                       <SectionExportButton 
                         sectionName={section.section_name}
                         parts={section.parts || []}
                         projectName={project.project_name}
                       />
+                      <div className="h-4 w-px bg-gray-100 mx-1" />
                       <button 
                         onClick={() => {
                           setSectionToCopy({ id: section.id, name: section.section_name });
                           setIsCopySectionModalOpen(true);
                         }}
-                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-                        title="Copy to another project"
+                        className="p-2.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                        title="Replicate to Cluster"
                       >
-                        <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                        <Copy className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => openAddPart(section.id, section.section_name)}
-                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                        className="p-2.5 text-primary-500 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+                        title="Inject Component"
                       >
-                       <Plus className="h-3.5 w-3.5 mr-1" /> Add Part
+                       <Plus className="h-4 w-4" />
                       </button>
                       <button 
                         onClick={() => openEditSection(section)}
-                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors overflow-hidden relative group/btn"
+                        className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                        title="Module Configuration"
                       >
-                        <Settings className="h-3.5 w-3.5 mr-1" /> Edit
+                        <Settings className="h-4 w-4" />
                       </button>
                       {isAdmin && (
                         <button 
                           onClick={() => handleDeleteSection(section.id)}
-                          className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                          className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                          title="Purge Module"
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                     </div>
