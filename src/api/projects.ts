@@ -98,8 +98,76 @@ export const projectsApi = {
     const { error } = await (supabase as any)
       .from('projects')
       .delete()
-      .eq('id', id)
-    if (error) throw error
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // Task 4: Copy section from one project to another
+  copySection: async (sectionId: number, targetProjectId: number) => {
+    // 1. Get the source section details
+    const { data: section, error: secError } = await (supabase as any)
+      .from('project_sections')
+      .select('*, parts:project_parts(*)')
+      .eq('id', sectionId)
+      .single();
+
+    if (secError) throw secError;
+    if (!section) throw new Error('Section not found');
+
+    // 2. Create a new section in the target project
+    const newSectionPayload: ProjectSectionInsert = {
+      project_id: targetProjectId,
+      section_name: `${section.section_name} (Copy)`,
+      description: section.description,
+      status: 'planning', // Reset status for the copy
+      estimated_cost: section.estimated_cost,
+      actual_cost: 0, // Reset actual cost
+      start_date: null,
+      target_completion_date: null,
+      sort_order: (section.sort_order || 0) + 1,
+      image_path: section.image_path,
+      drawing_path: section.drawing_path,
+      datasheet_path: section.datasheet_path
+    };
+
+    const { data: newSection, error: insSecError } = await (supabase as any)
+      .from('project_sections')
+      .insert([newSectionPayload])
+      .select()
+      .single();
+
+    if (insSecError) throw insSecError;
+    if (!newSection) throw new Error('Failed to create new section');
+
+    // 3. Copy all parts associated with the section
+    if (section.parts && section.parts.length > 0) {
+      const partsToCopy = section.parts.map((p: any) => ({
+        project_section_id: (newSection as any).id,
+        mechanical_manufacture_id: p.mechanical_manufacture_id,
+        mechanical_bought_out_part_id: p.mechanical_bought_out_part_id,
+        electrical_manufacture_id: p.electrical_manufacture_id,
+        electrical_bought_out_part_id: p.electrical_bought_out_part_id,
+        pneumatic_bought_out_part_id: p.pneumatic_bought_out_part_id,
+        quantity: p.quantity,
+        unit_price: p.unit_price,
+        currency: p.currency,
+        discount_percent: p.discount_percent,
+        base_price_at_assignment: p.base_price_at_assignment,
+        supplier_name_at_assignment: p.supplier_name_at_assignment,
+        reference_designator: p.reference_designator,
+        notes: p.notes,
+        part_number: p.part_number,
+        part_table_name: p.part_table_name
+      }));
+
+      const { error: insPartsError } = await (supabase as any)
+        .from('project_parts')
+        .insert(partsToCopy);
+
+      if (insPartsError) throw insPartsError;
+    }
+
+    return newSection;
   },
 
   getSections: async (projectId: number) => {

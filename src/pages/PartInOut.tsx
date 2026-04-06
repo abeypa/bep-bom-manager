@@ -6,10 +6,12 @@ import {
   Calendar, Briefcase, Factory, User, FileText, RefreshCw,
   TrendingUp, RotateCcw, SlidersHorizontal, Package
 } from 'lucide-react'
+import StockMovementModal from '@/components/inventory/StockMovementModal'
 
 const PartInOut = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'IN' | 'OUT' | 'ADJUST' | 'RESTORE'>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const { data: movements, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stock-movements', activeTab],
@@ -52,6 +54,7 @@ const PartInOut = () => {
             <RefreshCw className="w-5 h-5 text-gray-400" />
           </button>
           <button
+            onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-gray-200 hover:bg-gray-800 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
@@ -59,6 +62,11 @@ const PartInOut = () => {
           </button>
         </div>
       </div>
+
+      <StockMovementModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
 
       {/* Tabs / Filters Container */}
       <div className="bg-white p-2 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">

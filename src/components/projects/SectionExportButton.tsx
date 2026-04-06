@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, FileText, File, FileSpreadsheet } from 'lucide-react';
+import { Download, FileText, File, FileSpreadsheet, FileCode } from 'lucide-react';
 import exportUtils from '../../utils/export';
 import { useToast } from '../../context/ToastContext';
 
@@ -60,6 +60,35 @@ export default function SectionExportButton({
     }
   };
 
+  const handleExportJSON = () => {
+    try {
+      // Export in the same format suited for import
+      const exportData = parts.map((p: any) => ({
+        PartNumber: p.part_number,
+        Description: p.description || '',
+        PartType: p.part_table_name, // Map back to PartType if possible, or just the table name
+        quantity: p.quantity,
+        unit_price: p.unit_price,
+        DiscountPercent: p.discount_percent,
+        Currency: p.currency,
+        projectName: projectName,
+        sectionName: sectionName
+      }));
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${sectionName}_BOM.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      showToast('success', `${sectionName} BOM exported as JSON`);
+    } catch (err) {
+      showToast('error', 'Failed to export BOM as JSON');
+    }
+  };
+
   return (
     <div className="flex gap-2">
       <button
@@ -84,6 +113,14 @@ export default function SectionExportButton({
       >
         <File className="w-4 h-4" />
         PDF
+      </button>
+
+      <button
+        onClick={handleExportJSON}
+        className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 hover:bg-gray-50 rounded-2xl transition-colors"
+      >
+        <FileCode className="w-4 h-4" />
+        JSON
       </button>
     </div>
   );

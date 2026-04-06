@@ -19,15 +19,20 @@ import {
   FileDown,
   Trash2,
   ShoppingCart,
-  Edit2
+  Edit2,
+  Copy
 } from 'lucide-react'
 
 import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
 import ProjectAddPartModal from '@/components/projects/ProjectAddPartModal'
 import ProjectEditPartModal from '@/components/projects/ProjectEditPartModal'
 import CreatePOFromBOMModal from '@/components/projects/CreatePOFromBOMModal'
+import ProjectSectionCopyModal from '@/components/projects/ProjectSectionCopyModal'
+import SectionExportButton from '@/components/projects/SectionExportButton'
 import { purchaseOrdersApi } from '@/api/purchase-orders'
 import { useRole } from '@/hooks/useRole'
+import { useToast } from '@/context/ToastContext'
+import { supabase } from '@/lib/supabase'
 
 const resolvePartType = (p: any) => {
   if (p.mechanical_manufacture_id) return { type: 'MECH-MFG', id: p.mechanical_manufacture_id, ref: p.mechanical_manufacture };
@@ -53,6 +58,9 @@ const ProjectDetails = () => {
   const [isEditPartModalOpen, setIsEditPartModalOpen] = useState(false)
   const [partToEdit, setPartToEdit] = useState<any>(null)
   const [activeTab, setActiveTab] = useState<'bom' | 'pos'>('bom')
+  const [isCopySectionModalOpen, setIsCopySectionModalOpen] = useState(false)
+  const [sectionToCopy, setSectionToCopy] = useState<{id: number, name: string} | null>(null)
+  const { showToast } = useToast()
   
   const togglePartSelection = (partId: number) => {
     const newSelection = new Set(selectedPartIds)
@@ -170,9 +178,43 @@ const ProjectDetails = () => {
           </nav>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50 shadow-sm transition-colors">
+          <button 
+            onClick={async () => {
+              try {
+                const combinedParts: any[] = [];
+                project.sections?.forEach((s: any) => {
+                  s.parts?.forEach((p: any) => {
+                    const type = resolvePartType(p);
+                    combinedParts.push({
+                      PartNumber: type.ref?.part_number,
+                      Description: type.ref?.description || '',
+                      PartType: p.part_table_name,
+                      quantity: p.quantity,
+                      unit_price: p.unit_price,
+                      DiscountPercent: p.discount_percent,
+                      Currency: p.currency,
+                      projectName: project.project_name,
+                      sectionName: s.section_name
+                    });
+                  });
+                });
+                
+                const blob = new Blob([JSON.stringify(combinedParts, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${project.project_name}_Full_BOM.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('success', 'Project BOM exported as JSON');
+              } catch (err) {
+                showToast('error', 'Failed to export project BOM');
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-blue-200 bg-blue-50 text-sm font-black rounded-lg text-blue-700 hover:bg-blue-100 shadow-sm transition-colors"
+          >
             <FileDown className="h-4 w-4 mr-2" />
-            Export BOM
+            Export Project BOM (JSON)
           </button>
           <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all shadow-sm">
             <Settings className="h-5 w-5" />
@@ -448,6 +490,21 @@ const ProjectDetails = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <SectionExportButton 
+                        sectionName={section.section_name}
+                        parts={section.parts || []}
+                        projectName={project.project_name}
+                      />
+                      <button 
+                        onClick={() => {
+                          setSectionToCopy({ id: section.id, name: section.section_name });
+                          setIsCopySectionModalOpen(true);
+                        }}
+                        className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                        title="Copy to another project"
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+                      </button>
                       <button 
                         onClick={() => openAddPart(section.id, section.section_name)}
                         className="inline-flex items-center px-2.5 py-1.5 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
@@ -672,6 +729,18 @@ const ProjectDetails = () => {
         project={project}
         selectedPartIds={Array.from(selectedPartIds)}
       />
+
+      {sectionToCopy && (
+        <ProjectSectionCopyModal
+          isOpen={isCopySectionModalOpen}
+          onClose={() => {
+            setIsCopySectionModalOpen(false);
+            setSectionToCopy(null);
+          }}
+          sectionId={sectionToCopy.id}
+          sectionName={sectionToCopy.name}
+        />
+      )}
     </div>
   )
 }

@@ -28,42 +28,53 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     setError(null);
   };
 
+  const onPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          setSelectedFile(file);
+          setError(null);
+          await startUpload(file);
+        }
+      }
+    }
+  };
+
+  const startUpload = async (fileToUpload: File) => {
+    setUploading(true);
+    setError(null);
+    try {
+      const fileExt = fileToUpload.name.split('.').pop() || 'png';
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, fileToUpload);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      onUpload?.(publicUrl);
+      setSelectedFile(null);
+    } catch (err: any) {
+      setError(err.message || 'Error uploading file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) {
       setError('Please select a file first');
       return;
     }
-
-    setUploading(true);
-    setError(null);
-
-    try {
-      const fileExt = selectedFile.name.split('.').pop() || 'png';
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, selectedFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
-
-      onUpload?.(urlData.publicUrl);
-
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setError(err?.message || 'Upload failed. Check bucket permissions.');
-    } finally {
-      setUploading(false);
-    }
+    await startUpload(selectedFile);
   };
 
   const handleCancel = () => {
@@ -73,7 +84,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onPaste={onPaste}>
       {label && (
         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
           {label}

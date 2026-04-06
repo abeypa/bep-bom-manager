@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Save, Layers } from 'lucide-react';
 import { projectsApi, ProjectSectionInsert } from '@/api/projects';
+import { FileUpload } from '@/components/ui/FileUpload';
 
 interface ProjectSectionModalProps {
   isOpen: boolean;
@@ -20,7 +21,10 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
     actual_cost: 0,
     start_date: null,
     target_completion_date: null,
-    project_id: projectId
+    project_id: projectId,
+    image_path: null,
+    drawing_path: null,
+    datasheet_path: null
   });
 
   useEffect(() => {
@@ -35,7 +39,10 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
         actual_cost: 0,
         start_date: null,
         target_completion_date: null,
-        project_id: projectId
+        project_id: projectId,
+        image_path: null,
+        drawing_path: null,
+        datasheet_path: null
       });
     }
   }, [sectionToEdit, isOpen, projectId]);
@@ -117,7 +124,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
               <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Description (Optional)</label>
               <textarea
                 name="description"
-                rows={3}
+                rows={2}
                 placeholder="Briefly describe what this section covers..."
                 value={formData.description || ''}
                 onChange={handleChange}
@@ -128,33 +135,27 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Estimated Cost</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
-                  <input
-                    type="number"
-                    name="estimated_cost"
-                    value={formData.estimated_cost || 0}
-                    onChange={handleChange}
-                    className="block w-full bg-gray-50 border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
+                <input
+                  type="number"
+                  name="estimated_cost"
+                  value={formData.estimated_cost || 0}
+                  onChange={handleChange}
+                  className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
+                />
               </div>
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Actual Cost</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</span>
-                  <input
-                    type="number"
-                    name="actual_cost"
-                    value={formData.actual_cost || 0}
-                    onChange={handleChange}
-                    className="block w-full bg-gray-50 border-gray-200 rounded-xl pl-7 pr-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
-                  />
-                </div>
+                <input
+                  type="number"
+                  name="actual_cost"
+                  value={formData.actual_cost || 0}
+                  onChange={handleChange}
+                  className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary-500 transition-all"
+                />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1.5 px-0.5">Start Date</label>
                 <input
@@ -183,7 +184,7 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
                 name="status"
                 value={formData.status || 'planning'}
                 onChange={handleChange}
-                className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="block w-full bg-gray-50 border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary-500 transition-all"
               >
                 <option value="planning">Planning</option>
                 <option value="design">Design</option>
@@ -192,9 +193,35 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
                 <option value="on_hold">On Hold</option>
               </select>
             </div>
+
+            <div className="space-y-4 pt-4 border-t border-gray-100">
+              <label className="block text-sm font-bold text-gray-900 mb-2 italic">Section Assets</label>
+              <div className="grid grid-cols-1 gap-4">
+                <FileUpload
+                  label="Section Image"
+                  bucket="section-assets"
+                  existingUrl={formData.image_path}
+                  onUpload={(url) => setFormData(prev => ({ ...prev, image_path: url }))}
+                />
+                
+                <FileUpload
+                  label="Technical Drawing"
+                  bucket="section-assets"
+                  existingUrl={formData.drawing_path}
+                  onUpload={(url) => setFormData(prev => ({ ...prev, drawing_path: url }))}
+                />
+                
+                <FileUpload
+                  label="Data Sheet"
+                  bucket="section-assets"
+                  existingUrl={formData.datasheet_path}
+                  onUpload={(url) => setFormData(prev => ({ ...prev, datasheet_path: url }))}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
+          <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white">
             <button
               type="button"
               onClick={onClose}

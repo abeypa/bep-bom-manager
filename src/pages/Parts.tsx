@@ -237,6 +237,15 @@ const Parts = () => {
                         <div className="absolute top-6 left-6 px-3 py-1.5 bg-white/80 backdrop-blur-md border border-gray-100 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest">
                           {isManufacture ? 'Custom' : 'Sourced'}
                         </div>
+
+                        {/* Edit Button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEditPart(part); }}
+                          className="absolute top-2 right-2 p-2 bg-white border border-gray-100 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Edit Asset"
+                        >
+                          <Edit className="h-4 w-4 text-gray-600 hover:text-gray-900" />
+                        </button>
                       </div>
         
                       {/* Details Area */}

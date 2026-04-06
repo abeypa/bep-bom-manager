@@ -266,6 +266,9 @@ export interface Database {
           start_date: string | null
           target_completion_date: string | null
           sort_order: number | null
+          image_path: string | null
+          drawing_path: string | null
+          datasheet_path: string | null
           created_date: string
           updated_date: string | null
         }
@@ -280,6 +283,9 @@ export interface Database {
           start_date?: string | null
           target_completion_date?: string | null
           sort_order?: number | null
+          image_path?: string | null
+          drawing_path?: string | null
+          datasheet_path?: string | null
           created_date?: string
           updated_date?: string | null
         }
@@ -294,6 +300,9 @@ export interface Database {
           start_date?: string | null
           target_completion_date?: string | null
           sort_order?: number | null
+          image_path?: string | null
+          drawing_path?: string | null
+          datasheet_path?: string | null
           created_date?: string
           updated_date?: string | null
         }
