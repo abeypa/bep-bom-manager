@@ -54,26 +54,30 @@ CREATE POLICY "Allow All" ON "part_price_history" FOR ALL USING (true) WITH CHEC
 -- 2. STORAGE BUCKET (Allow file uploads to bom_assets)
 -----------------------------------------------------------
 
--- Ensure the bucket exists
+-- Ensure the bucket exists and is PUBLIC
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('bom_assets', 'bom_assets', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Policy to allow anyone to READ (since the bucket is public)
+DROP POLICY IF EXISTS "Public Read Access" ON storage.objects;
 CREATE POLICY "Public Read Access"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'bom_assets' );
 
 -- Policy to allow authenticated users to UPLOAD
+DROP POLICY IF EXISTS "Allow Authenticated Uploads" ON storage.objects;
 CREATE POLICY "Allow Authenticated Uploads"
 ON storage.objects FOR INSERT
 WITH CHECK ( bucket_id = 'bom_assets' );
 
 -- Policy to allow authenticated users to UPDATE/DELETE their files
+DROP POLICY IF EXISTS "Allow Authenticated Updates" ON storage.objects;
 CREATE POLICY "Allow Authenticated Updates"
 ON storage.objects FOR UPDATE
 USING ( bucket_id = 'bom_assets' );
 
+DROP POLICY IF EXISTS "Allow Authenticated Deletes" ON storage.objects;
 CREATE POLICY "Allow Authenticated Deletes"
 ON storage.objects FOR DELETE
 USING ( bucket_id = 'bom_assets' );
