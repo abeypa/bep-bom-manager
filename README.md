@@ -1,100 +1,66 @@
-# BOM Manager
+# Master BOM Manager (Registry v3)
 
-A Bill of Materials (BOM) management system for tracking components, assemblies, and inventory.
+A high-performance, engineering-first BOM (Bill of Materials) Management system. Built for streamlined part registration, cross-project inventory tracking, and integrated CAD/Engineering asset management.
 
-## Quick Start
+## 🚀 Key Features
 
-```bash
-npm install
-npm run dev
-```
+- **Master Registry Management:** Unified database for all engineering parts (Mechanical, Electrical, Pneumatic).
+- **Project-Specific BOMs:** Build and customize BOMs for specific projects with estimated vs actual cost tracking.
+- **Stock Movement & In/Out Tracking:** Real-time inventory adjustments with detailed audit logs.
+- **Integrated Digital Assets:** 
+  - Clipboard (Ctrl+V) image paste for lightning-fast asset registration.
+  - Storage for CAD Geometry (.STEP), PDF Drawings, and Technical Datasheets.
+  - **Unified 'bom_assets' Storage:** Simplified single-bucket configuration.
+- **Smart Import/Export:**
+  - Strict JSON validation for part imports to ensure registry integrity.
+  - CSV/JSON export for project-level reporting and PO generation.
+- **Supplier Directory:** Integrated supplier management for streamlined sourcing.
 
-## Features
+## 🛠️ Tech Stack
 
-- Manual historical price entry with custom dates
-- Admin access hardening
-- Part detail view with audit trails
+- **Frontend:** React + TypeScript + Vite
+- **Styling:** Vanilla CSS + Tailwind
+- **Backend:** Supabase (Database & Auth)
+- **Storage:** Supabase Storage (Unified Bucket)
+- **Icons:** Lucide React
 
-## Configuration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| VITE_API_URL | Base URL for Supabase API | https://your-supabase-url |
-
-## Documentation
-
-- [API Reference](./docs/api.md)
-- [Architecture](./docs/architecture.md)
-- [Changelog](./docs/changelog.md)
-- [ADR-001](./docs/adr-001.md)
-- [AI‑Friendly Docs](./docs/llms.txt)
-
-## License
-
-MITech Stack
-
-- **Backend**: Node.js with Express
-- **Frontend**: React with TypeScript
-- **Database**: PostgreSQL with Supabase
-
-## Getting Started
+## 📦 Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- Git
 
-### Installation
+- Node.js (v18+)
+- Supabase Project
 
-1. Clone the repository:
+### Local Development
+
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/bom-manager.git
-   cd bom-manager
+   git clone <repo-url>
+   cd V3/bom-manager
    ```
 
-2. Install dependencies:
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+3. **Configure Environment:**
+   Create a `.env` file in the `bom-manager` directory:
+   ```env
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
 
-4. Set up database:
-   ```bash
-   # Run database migrations
-   npm run db:migrate
-   ```
-
-5. Start the development server:
+4. **Run Development Server:**
    ```bash
    npm run dev
    ```
 
-## Project Structure
+## 🏗️ Deployment & Production
 
-```
-bom-manager/
-├── src/
-│   ├── api/          # API routes and controllers
-│   ├── models/       # Database models
-│   ├── services/     # Business logic
-│   ├── middleware/   # Express middleware
-│   └── utils/        # Utility functions
-├── client/           # Frontend React application
-├── docs/             # Documentation
-└── tests/            # Test files
-```
+For production setup instructions including Supabase RLS policies and Storage Bucket configuration, refer to:
+**[docs/PRODUCTION_SETUP.md](./docs/PRODUCTION_SETUP.md)**
 
-## Development
+## 📧 Support & Maintenance
 
-- Run tests: `npm test`
-- Build for production: `npm run build`
-- Run in production: `npm start`
-
-## License
-
-MIT
+This repository is maintained as a Master Engineering Registry for the Bep BOM Ecosystem.
