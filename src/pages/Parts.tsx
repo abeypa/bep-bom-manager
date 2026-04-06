@@ -12,10 +12,10 @@ import PriceHistoryModal from '@/components/parts/PriceHistoryModal'
 import PartDetailModal from '@/components/parts/PartDetailModal'
 
 const TABS: { id: PartCategory; name: string }[] = [
+  { id: 'electrical_bought_out', name: 'Elec Bought-Out' },
   { id: 'mechanical_manufacture', name: 'Mech Manufacture' },
   { id: 'mechanical_bought_out', name: 'Mech Bought-Out' },
   { id: 'electrical_manufacture', name: 'Elec Manufacture' },
-  { id: 'electrical_bought_out', name: 'Elec Bought-Out' },
   { id: 'pneumatic_bought_out', name: 'Pneumatic' },
 ]
 

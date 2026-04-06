@@ -159,7 +159,7 @@ const ProjectDetails = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col space-y-6">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full flex flex-col space-y-6">
       {/* Header & Navigation */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div className="flex items-center space-x-4">
@@ -224,9 +224,9 @@ const ProjectDetails = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Left Column: Project Overview */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="xl:col-span-3 space-y-6">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-xl transition-all duration-500">
             <div className="p-8 border-b border-gray-50 bg-gradient-to-br from-gray-50/50 to-white">
               <div className="flex justify-between items-center mb-6">
@@ -333,7 +333,7 @@ const ProjectDetails = () => {
         </div>
 
         {/* Right Column: Workflow & BOM Sections */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-9 space-y-6">
           {/* Project Workflow Status Section */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-4 sm:px-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
