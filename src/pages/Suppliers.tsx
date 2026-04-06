@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { suppliersApi, Supplier } from '@/api/suppliers'
 import { Search, Plus, Edit, Trash2, Users, Mail, Phone, MapPin } from 'lucide-react'
 import SupplierFormModal from '@/components/suppliers/SupplierFormModal'
+import { useRole } from '@/hooks/useRole'
 
 const Suppliers = () => {
+  const { isAdmin } = useRole()
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -152,13 +154,15 @@ const Suppliers = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(supplier.id)}
-                          disabled={deleteMutation.isPending}
-                          className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {isAdmin && (
+                          <button 
+                            onClick={() => handleDelete(supplier.id)}
+                            disabled={deleteMutation.isPending}
+                            className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

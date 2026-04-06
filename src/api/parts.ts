@@ -68,12 +68,56 @@ export const partsApi = {
     return partsApi.getPartsByCategory(category);
   },
 
+  // Centralized field mapping for imports (aliases permitted)
+  _PART_FIELD_MAP: {
+    'PartNumber': 'part_number',
+    'Description': 'description',
+    'SupplierId': 'supplier_id',
+    'BasePrice': 'base_price',
+    'Price': 'base_price',
+    'Currency': 'currency',
+    'DiscountPercent': 'discount_percent',
+    'StockQuantity': 'stock_quantity',
+    'MinStockLevel': 'min_stock_level',
+    'OrderQty': 'order_qty',
+    'ReceivedQty': 'received_qty',
+    'LeadTime': 'lead_time',
+    'Specifications': 'specifications',
+    'Manufacturer': 'manufacturer',
+    'ManufacturerPartNumber': 'manufacturer_part_number',
+    'Material': 'material',
+    'Finish': 'finish',
+    'Weight': 'weight',
+    'VendorPartNumber': 'vendor_part_number',
+    'PONumber': 'po_number',
+    'PortSize': 'port_size',
+    'OperatingPressure': 'operating_pressure'
+  },
+
+  // Helper: Clean part payload for master table write
+  _cleanPartPayload: (payload: any) => {
+    const cleaned = { ...payload };
+    // UI/Virtual fields
+    delete (cleaned as any).notes;
+    delete (cleaned as any).suppliers;
+    delete (cleaned as any).display_type;
+    delete (cleaned as any).category;
+    delete (cleaned as any).projectName;
+    delete (cleaned as any).sectionName;
+    delete (cleaned as any).PartType;
+    
+    // Audit-only fields (handled by separate tables)
+    delete (cleaned as any).price_revision_date;
+    delete (cleaned as any).PriceRevisionDate;
+    delete (cleaned as any).pricerevisiondate;
+    
+    return cleaned;
+  },
+
   // Create a new part
   createPart: async (category: PartCategory, payload: any) => {
-    // Extract optional price revision date for logging
-    const revisionDate = payload.price_revision_date;
-    const cleanPayload = { ...payload };
-    delete cleanPayload.price_revision_date;
+    const revisionDate = payload.price_revision_date || payload.PriceRevisionDate || payload.pricerevisiondate;
+    const cleanPayload = partsApi._cleanPartPayload(payload);
 
     const { data, error } = await (supabase as any)
       .from(category)
@@ -100,10 +144,8 @@ export const partsApi = {
       .eq('id', id)
       .single();
 
-    // Extract optional price revision date for logging
-    const revisionDate = updates.price_revision_date;
-    const cleanUpdates = { ...updates };
-    delete cleanUpdates.price_revision_date;
+    const revisionDate = updates.price_revision_date || updates.PriceRevisionDate || updates.pricerevisiondate;
+    const cleanUpdates = partsApi._cleanPartPayload(updates);
 
     // 2. Perform the update
     const { data: updated, error } = await (supabase as any)
@@ -177,14 +219,12 @@ export const partsApi = {
           throw new Error('PartNumber is required')
         }
 
-        // Map fields to snake_case
-        const payload: any = {}
+        // Using centralized cleaning/mapping
+        const rawPayload: any = {}
         Object.entries(part).forEach(([key, value]) => {
-          const targetKey = fieldMap[key] || key.toLowerCase()
-          if (key !== 'PartType') {
-            payload[targetKey] = value
-          }
+          rawPayload[(partsApi._PART_FIELD_MAP as any)[key] || key.toLowerCase()] = value
         })
+        const payload = partsApi._cleanPartPayload(rawPayload)
 
         // Check if part exists
         const { data: existing } = await supabase
@@ -334,14 +374,14 @@ export const partsApi = {
           }
         }
 
-        // Prepare payload
-        const payload: any = {};
+        // Prepare payload (Clean audit/UI only fields)
+        let revisionDate: string | null = null;
+        const rawPayload: any = {};
         Object.entries(part).forEach(([key, value]) => {
-          const targetKey = fieldMap[key] || key.toLowerCase();
-          if (!['PartType', 'projectName', 'sectionName'].includes(key)) {
-            payload[targetKey] = value;
-          }
+          rawPayload[(partsApi._PART_FIELD_MAP as any)[key] || key.toLowerCase()] = value;
         });
+        
+        const payload = partsApi._cleanPartPayload(rawPayload);
 
         // Insert part
         const { data: newPart, error: insertError } = await (supabase as any)
@@ -369,8 +409,8 @@ export const partsApi = {
           if (linkError) throw linkError;
         }
 
-        // Log initial price
-        await logPriceHistory(category, (newPart as any).id, (newPart as any).part_number, null, newPart, 'strict_import');
+        // Log initial price (Audit history)
+        await logPriceHistory(category, (newPart as any).id, (newPart as any).part_number, null, newPart, 'strict_import', revisionDate);
 
       } catch (err: any) {
         // Abort the whole import on first error
