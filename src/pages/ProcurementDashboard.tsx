@@ -32,7 +32,13 @@ export default function ProcurementDashboard() {
   const generatePOMutation = useMutation({
     mutationFn: async ({ supplierId, parts }: { supplierId: number, parts: any[] }) => {
       const firstPart = parts[0];
-      const projectId = firstPart.section?.project_id;
+      // Robust project ID extraction with multiple fallbacks
+      const projectId = firstPart.section?.project_id || firstPart.section?.project?.id;
+      
+      if (!projectId) {
+        console.error('Missing project Context for part:', firstPart);
+        throw new Error('Mandatory Project ID not found for the selected items. Cannot generate PO.');
+      }
       
       const poData = {
         supplier_id: supplierId,

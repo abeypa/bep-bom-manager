@@ -283,6 +283,7 @@ export const purchaseOrdersApi = {
         section:project_sections (
           id,
           section_name,
+          project_id,
           project:projects (id, project_name)
         ),
         mechanical_manufacture (*, suppliers(name)),
