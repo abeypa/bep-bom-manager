@@ -57,8 +57,6 @@ export default function ProcurementDashboard() {
                    p.mechanical_bought_out_part_id ? 'mechanical_bought_out' :
                    p.electrical_manufacture_id ? 'electrical_manufacture' :
                    p.electrical_bought_out_part_id ? 'electrical_bought_out' : 'pneumatic_bought_out',
-        part_id: p.mechanical_manufacture_id || p.mechanical_bought_out_part_id || 
-                 p.electrical_manufacture_id || p.electrical_bought_out_part_id || p.pneumatic_bought_out_part_id,
         part_number: p.mechanical_manufacture?.part_number || p.mechanical_bought_out?.part_number || 
                     p.electrical_manufacture?.part_number || p.electrical_bought_out?.part_number || 
                     p.pneumatic_bought_out?.part_number || 'N/A',
