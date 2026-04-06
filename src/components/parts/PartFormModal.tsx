@@ -132,12 +132,16 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
       if (cleaned[key] === '') cleaned[key] = null
     })
 
-    // Remove UI-only fields that are not in the database schema
+    // Remove UI-only fields that are not in the database schema or handled differently
     delete cleaned.notes
     delete cleaned.suppliers
     delete cleaned.display_type
     delete cleaned.category
-
+    
+    // These are handled by history/audit tables, not the master part table
+    delete cleaned.price_revision_date
+    // delete cleaned.discount_percent // actually some tables might have it, but checking schema
+    
     return cleaned
   }
 

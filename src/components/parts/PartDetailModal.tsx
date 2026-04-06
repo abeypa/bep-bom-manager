@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit, History, ArrowUpDown, FileText, Package, TrendingUp, TrendingDown, Clock, ShieldCheck, Box, Trash2 } from 'lucide-react';
+import { X, Edit, History, ArrowUpDown, FileText, Package, TrendingUp, TrendingDown, Clock, ShieldCheck, Box, Trash2, Plus } from 'lucide-react';
 import { priceHistoryApi } from '../../api/price-history';
 import { stockMovementsApi } from '../../api/stock-movements';
 import { useRole } from '../../hooks/useRole';
@@ -10,11 +10,12 @@ import { useQueryClient } from '@tanstack/react-query';
 interface PartDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: (part: any) => void;
   part: any;
   category: string;
 }
 
-export default function PartDetailModal({ isOpen, onClose, part, category }: PartDetailModalProps) {
+export default function PartDetailModal({ isOpen, onClose, onEdit, part, category }: PartDetailModalProps) {
   const { isAdmin } = useRole();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -195,6 +196,18 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
                                 <span className="text-sm font-black mr-1 not-italic text-gray-500">₹</span>
                                 {part.base_price?.toLocaleString('en-IN', { minimumFractionDigits: 1 })}
                             </div>
+                            <button
+                              onClick={() => {
+                                if (onEdit) {
+                                  onEdit(part);
+                                  onClose();
+                                }
+                              }}
+                              className="mt-6 group flex items-center justify-center gap-3 w-full px-8 py-4 bg-white/10 hover:bg-white/20 rounded-[1.5rem] text-white transition-all text-[10px] font-black uppercase tracking-widest"
+                            >
+                              <Edit className="w-3 h-3" />
+                              Modify Record
+                            </button>
                         </div>
                         <div className="p-8 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -274,11 +287,13 @@ export default function PartDetailModal({ isOpen, onClose, part, category }: Par
                         <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Price Evolution Timeline</h4>
                     </div>
                     <div className="flex items-center gap-4">
-                      {isAdmin && !isAddingPrice && (
-                        <button 
+                      {/* Add Manual Price Entry - Open to all */}
+                      {!isAddingPrice && (
+                        <button
                           onClick={() => setIsAddingPrice(true)}
-                          className="px-4 py-2 bg-gray-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:scale-105 transition-all"
+                          className="inline-flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-colors"
                         >
+                          <Plus className="w-4 h-4" />
                           Log Manual Entry
                         </button>
                       )}

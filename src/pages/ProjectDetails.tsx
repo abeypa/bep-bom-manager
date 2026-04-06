@@ -604,24 +604,22 @@ const ProjectDetails = () => {
                                   >
                                     <Edit2 className="h-3.5 w-3.5" />
                                   </button>
-                                  {isAdmin && (
-                                    <button 
-                                      onClick={async () => {
-                                        if (confirm('Are you sure you want to remove this part from the BOM?')) {
-                                          try {
-                                            await projectsApi.removePartFromSection(p.id);
-                                            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-                                          } catch (error) {
-                                            console.error('Error removing part:', error);
-                                            alert('Failed to remove part');
-                                          }
+                                  <button 
+                                    onClick={async () => {
+                                      if (confirm('Are you sure you want to remove this part from the BOM?')) {
+                                        try {
+                                          await projectsApi.removePartFromSection(p.id);
+                                          queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+                                        } catch (error) {
+                                          console.error('Error removing part:', error);
+                                          alert('Failed to remove part');
                                         }
-                                      }}
-                                      className="text-red-400 hover:text-red-600 transition-colors"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
-                                  )}
+                                      }
+                                    }}
+                                    className="text-red-400 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
                                 </div>
                               </td>
                             </tr>

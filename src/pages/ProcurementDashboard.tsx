@@ -31,14 +31,18 @@ export default function ProcurementDashboard() {
 
   const generatePOMutation = useMutation({
     mutationFn: async ({ supplierId, parts }: { supplierId: number, parts: any[] }) => {
+      const firstPart = parts[0];
+      const projectId = firstPart.section?.project_id;
+      
       const poData = {
         supplier_id: supplierId,
+        project_id: projectId,
         po_number: `CPO-${Date.now().toString().slice(-8)}`,
         po_date: new Date().toISOString(),
         status: 'Draft',
         grand_total: parts.reduce((acc, p) => acc + (p.quantity * p.unit_price * (1 - (p.discount_percent / 100))), 0),
         total_items: parts.length,
-        notes: 'Consolidated PO generated from Global Procurement Registry.',
+        notes: `Consolidated PO${parts.some(p => p.section?.project_id !== projectId) ? ' (Multi-Project)' : ''} generated from Global Procurement Registry.`,
         created_date: new Date().toISOString()
       };
 

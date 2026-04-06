@@ -382,6 +382,7 @@ const Parts = () => {
         <PartDetailModal
             isOpen={true}
             onClose={() => setDetailModal(null)}
+            onEdit={handleEditPart}
             part={detailModal.part}
             category={detailModal.category}
         />
