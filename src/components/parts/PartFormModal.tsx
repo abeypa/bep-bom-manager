@@ -227,9 +227,10 @@ const PartFormModal = ({ isOpen, onClose, activeTab, partToEdit }: PartFormModal
               </div>
 
               <div className="p-4 bg-gray-50/50 rounded-3xl border border-gray-100 focus-within:border-gray-900 transition-all">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Supplier Selection</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Supplier Selection *</label>
                 <select
                   name="supplier_id"
+                  required
                   value={formData.supplier_id || ''}
                   onChange={handleChange}
                   className="block w-full bg-transparent text-sm font-bold outline-none cursor-pointer appearance-none"
