@@ -275,7 +275,6 @@ export default function PODetailModal({
                 </div>
               )}
 
-              {/* Line Items Table */}
               <div className="space-y-4">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">PO Line Items</h3>
                 <div className="border border-gray-100 rounded-3xl overflow-hidden bg-white shadow-sm">
@@ -289,28 +288,56 @@ export default function PODetailModal({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {po?.purchase_order_items?.map((item: any) => (
-                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-6 py-5">
-                            <p className="text-sm font-black text-gray-900 tracking-tight">{item.part_number}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[200px]">{item.description}</p>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <span className="text-sm font-black text-gray-600 tabular-nums">{item.quantity}</span>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <span className={`text-sm font-black tabular-nums ${item.received_qty > 0 ? (item.received_qty >= item.quantity ? 'text-green-600' : 'text-amber-600') : 'text-gray-300'}`}>
-                              {item.received_qty || 0}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                             <p className="text-sm font-black text-gray-900 tabular-nums">
-                               {item.total_amount?.toLocaleString('en-IN', { style: 'currency', currency: po?.currency || 'INR' })}
-                             </p>
-                             <p className="text-[10px] text-gray-400 font-bold uppercase tabular-nums">@{item.unit_price}</p>
-                          </td>
-                        </tr>
-                      ))}
+                      {(() => {
+                        const grouped = new Map<string, any>();
+                        (po?.purchase_order_items || []).forEach((item: any) => {
+                          const pn = item.part_number || 'N/A';
+                          if (!grouped.has(pn)) {
+                            grouped.set(pn, {
+                              ...item,
+                              quantity: 0,
+                              received_qty: 0,
+                              total_amount: 0,
+                              projectNumbers: new Set<string>()
+                            });
+                          }
+                          const g = grouped.get(pn);
+                          g.quantity += (item.quantity || 0);
+                          g.received_qty += (item.received_qty || 0);
+                          g.total_amount += (item.total_amount || 0);
+                          const prjNo = item.project_part?.project_section?.project?.project_number;
+                          if (prjNo) {
+                            g.projectNumbers.add(prjNo);
+                          }
+                        });
+                        return Array.from(grouped.values()).map((item: any) => (
+                          <tr key={item.part_number} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-6 py-5">
+                              <p className="text-sm font-black text-gray-900 tracking-tight">{item.part_number}</p>
+                              <p className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[200px]">{item.description}</p>
+                              {item.projectNumbers.size > 0 && (
+                                <p className="text-[9px] text-indigo-500 font-bold uppercase truncate">
+                                  Prj: {Array.from(item.projectNumbers).join(', ')}
+                                </p>
+                              )}
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <span className="text-sm font-black text-gray-600 tabular-nums">{item.quantity}</span>
+                            </td>
+                            <td className="px-6 py-5 text-center">
+                              <span className={`text-sm font-black tabular-nums ${item.received_qty > 0 ? (item.received_qty >= item.quantity ? 'text-green-600' : 'text-amber-600') : 'text-gray-300'}`}>
+                                {item.received_qty || 0}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                               <p className="text-sm font-black text-gray-900 tabular-nums">
+                                 {item.total_amount?.toLocaleString('en-IN', { style: 'currency', currency: po?.currency || 'INR' })}
+                               </p>
+                               <p className="text-[10px] text-gray-400 font-bold uppercase tabular-nums">@{item.unit_price}</p>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>

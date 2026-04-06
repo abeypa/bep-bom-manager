@@ -55,23 +55,50 @@ export const exportUtils = {
     let csv = `Purchase Order Details\n`;
     csv += `PO Number,${po.po_number}\n`;
     csv += `Supplier,"${po.suppliers?.name || '-'}"\n`;
-    csv += `Project,"${po.project?.project_name || '-'}"\n`;
     csv += `Date,${new Date(po.created_date).toLocaleDateString('en-IN')}\n`;
     csv += `Status,${po.status}\n\n`;
     
     // Header for items
-    csv += 'Part Number,Description,Qty,Unit Price,Discount %,Total\n';
+    csv += 'Part Number,Description,Project NO,Qty,Unit Price,Discount %,Total\n';
+
+    // Group items by part_number to consolidate quantities and collect project numbers
+    const groupedItems = new Map<string, any>();
 
     (po.purchase_order_items || []).forEach((item: any) => {
-      const unitPrice = item.unit_price || 0;
-      const quantity = item.quantity || 0;
-      const discount = item.discount_percent || 0;
-      const total = unitPrice * quantity * (1 - discount / 100);
+      const pn = item.part_number || 'N/A';
+      const prjNo = item.project_part?.project_section?.project?.project_number;
+
+      if (!groupedItems.has(pn)) {
+        groupedItems.set(pn, {
+          part_number: pn,
+          description: item.description,
+          unit_price: item.unit_price || 0,
+          discount_percent: item.discount_percent || 0,
+          quantity: 0,
+          projectNumbers: new Set<string>()
+        });
+      }
+
+      const grp = groupedItems.get(pn);
+      grp.quantity += (item.quantity || 0);
+      if (prjNo) {
+        grp.projectNumbers.add(prjNo);
+      }
+    });
+
+    Array.from(groupedItems.values()).forEach((grp: any) => {
+      const total = grp.unit_price * grp.quantity * (1 - grp.discount_percent / 100);
       
       // Escape descriptions that might contain commas
-      const escapedDesc = (item.description || '-').replace(/"/g, '""');
+      const escapedDesc = (grp.description || '-').replace(/"/g, '""');
       
-      csv += `"${item.part_number}","${escapedDesc}",${quantity},${unitPrice},${discount},${total.toFixed(2)}\n`;
+      // Comma-separated project numbers
+      const projectNos = grp.projectNumbers.size > 0 
+        ? Array.from(grp.projectNumbers).join(', ') 
+        : '-';
+      const escapedProjectNos = projectNos.replace(/"/g, '""');
+
+      csv += `"${grp.part_number}","${escapedDesc}","${escapedProjectNos}",${grp.quantity},${grp.unit_price},${grp.discount_percent},${total.toFixed(2)}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

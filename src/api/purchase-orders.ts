@@ -42,7 +42,6 @@ export const purchaseOrdersApi = {
     return data
   },
 
-  // Get single PO with full details
   getById: async (poId: number) => {
     const { data, error } = await supabase
       .from('purchase_orders')
@@ -50,7 +49,16 @@ export const purchaseOrdersApi = {
         *,
         suppliers (*),
         project:projects (project_name),
-        purchase_order_items (*)
+        purchase_order_items (
+          *,
+          project_part:project_parts (
+            project_section:project_sections (
+              project:projects (
+                project_number
+              )
+            )
+          )
+        )
       `)
       .eq('id', poId)
       .single();

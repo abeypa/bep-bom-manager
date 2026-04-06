@@ -16,11 +16,12 @@ import {
   Layers,
   MoreVertical,
   PlusCircle,
+  ShoppingCart,
   FileDown,
   Trash2,
-  ShoppingCart,
   Edit2,
-  Copy
+  Copy,
+  Trash2 as TrashIcon
 } from 'lucide-react'
 
 import ProjectSectionModal from '@/components/projects/ProjectSectionModal'
@@ -698,6 +699,7 @@ const ProjectDetails = () => {
         onClose={() => setIsAddSectionModalOpen(false)}
         projectId={projectId}
         sectionToEdit={sectionToEdit}
+        onDelete={handleDeleteSection}
       />
 
       <ProjectAddPartModal

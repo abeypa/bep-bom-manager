@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X, Save, Layers } from 'lucide-react';
+import { X, Save, Layers, Trash2 } from 'lucide-react';
 import { projectsApi, ProjectSectionInsert } from '@/api/projects';
 import { FileUpload } from '@/components/ui/FileUpload';
 
@@ -9,9 +9,10 @@ interface ProjectSectionModalProps {
   onClose: () => void;
   projectId: number;
   sectionToEdit?: any | null;
+  onDelete?: (sectionId: number) => void;
 }
 
-const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: ProjectSectionModalProps) => {
+const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit, onDelete }: ProjectSectionModalProps) => {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<Partial<ProjectSectionInsert>>({
     section_name: '',
@@ -221,22 +222,39 @@ const ProjectSectionModal = ({ isOpen, onClose, projectId, sectionToEdit }: Proj
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3 sticky bottom-0 bg-white">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="inline-flex justify-center items-center px-8 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {mutation.isPending ? 'Saving...' : 'Save Section'}
-            </button>
+          <div className="pt-4 flex justify-between items-center sticky bottom-0 bg-white">
+            <div>
+              {sectionToEdit && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete(sectionToEdit.id);
+                    onClose();
+                  }}
+                  className="px-6 py-2.5 text-sm font-bold text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center rounded-xl transition-all"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Section
+                </button>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2.5 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={mutation.isPending}
+                className="inline-flex justify-center items-center px-8 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {mutation.isPending ? 'Saving...' : 'Save Section'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
