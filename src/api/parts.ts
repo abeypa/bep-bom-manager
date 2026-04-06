@@ -70,9 +70,14 @@ export const partsApi = {
 
   // Create a new part
   createPart: async (category: PartCategory, payload: any) => {
+    // Extract optional price revision date for logging
+    const revisionDate = payload.price_revision_date;
+    const cleanPayload = { ...payload };
+    delete cleanPayload.price_revision_date;
+
     const { data, error } = await (supabase as any)
       .from(category)
-      .insert([payload])
+      .insert([cleanPayload])
       .select()
       .single()
 
@@ -80,7 +85,7 @@ export const partsApi = {
     
     // Log initial price
     if (data) {
-      await logPriceHistory(category, data.id, data.part_number, null, data, 'manual_edit');
+      await logPriceHistory(category, data.id, data.part_number, null, data, 'initial_entry', revisionDate);
     }
     
     return data
